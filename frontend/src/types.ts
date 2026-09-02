@@ -9,6 +9,7 @@ export type Appointment = {
   token: number
   status: string
   statusType: Status
+  tradeoffLabel?: string
 }
 
 export type Hospital = {

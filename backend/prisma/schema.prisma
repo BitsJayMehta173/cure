@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Patient {
+  patient_id          String   @id @default(uuid())
+  name                String
+  abha_id             String?
+  language_preference String   @default("en")
+  consent_flags       String   // JSON string
+  created_at          DateTime @default(now())
+
+  bookings        Booking[]
+  triage_sessions TriageSession[]
+}
+
+model Doctor {
+  doctor_id  String  @id @default(uuid())
+  name       String
+  hpr_id     String?
+  specialty  String
+  rating     Float   @default(0.0)
+  verified   Boolean @default(false)
+
+  availability_slots AvailabilitySlot[]
+}
+
+model Facility {
+  facility_id  String @id @default(uuid())
+  name         String
+  hfr_id       String?
+  city         String
+  region       String
+  location_lat Float
+  location_lng Float
+
+  availability_slots AvailabilitySlot[]
+}
+
+model AvailabilitySlot {
+  slot_id             String   @id @default(uuid())
+  doctor_id           String
+  facility_id         String
+  slot_time           DateTime
+  queue_position      Int
+  estimated_wait_mins Int
+  status              String   // e.g., 'AVAILABLE', 'BOOKED', 'CANCELLED'
+
+  doctor   Doctor   @relation(fields: [doctor_id], references: [doctor_id])
+  facility Facility @relation(fields: [facility_id], references: [facility_id])
+  bookings Booking[]
+}
+
+model Booking {
+  booking_id       String   @id @default(uuid())
+  patient_id       String
+  slot_id          String
+  urgency_level    String   // 'ROUTINE', 'MODERATE', 'CRITICAL'
+  score_at_booking Float
+  status           String   // 'CONFIRMED', 'CANCELLED', 'REMATCHED'
+  booked_at        DateTime @default(now())
+
+  patient Patient          @relation(fields: [patient_id], references: [patient_id])
+  slot    AvailabilitySlot @relation(fields: [slot_id], references: [slot_id])
+}
+
+model TriageSession {
+  session_id         String   @id @default(uuid())
+  patient_id         String
+  severity_score     Int
+  symptom_flags      String   // JSON string
+  urgency_multiplier Float
+  created_at         DateTime @default(now())
+
+  patient Patient @relation(fields: [patient_id], references: [patient_id])
+}

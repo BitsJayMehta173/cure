@@ -1,6 +1,66 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-:root { font-family: 'Google Sans', 'Manrope', 'Segoe UI', sans-serif; color: #1f2937; background: #f8fafd; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-button, select { font: inherit; }
+:root {
+  /* Colors */
+  --color-bg-main: #f3f6f9; /* Soft cool gray for clinical feel */
+  --color-surface: rgba(255, 255, 255, 0.7); /* Glassmorphism surface */
+  --color-surface-solid: #ffffff;
+  
+  --color-primary: #3b82f6; /* Modern Blue */
+  --color-primary-hover: #2563eb;
+  --color-primary-light: #eff6ff;
+  
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-light: #94a3b8;
+  
+  /* Status Colors */
+  --color-status-stable-bg: rgba(16, 185, 129, 0.15);
+  --color-status-stable-text: #059669;
+  --color-status-warning-bg: rgba(245, 158, 11, 0.15);
+  --color-status-warning-text: #d97706;
+  --color-status-critical-bg: rgba(239, 68, 68, 0.15);
+  --color-status-critical-text: #dc2626;
+
+  /* Borders & Shadows */
+  --border-light: rgba(255, 255, 255, 0.5);
+  --border-default: #e2e8f0;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+
+  /* Utilities */
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  
+  /* Typography */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--color-text-main);
+  background: var(--color-bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(210,100%,95%,1) 0, transparent 50%), 
+    radial-gradient(at 100% 100%, hsla(220,100%,95%,1) 0, transparent 50%);
+  background-attachment: fixed;
+  
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button, select {
+  font: inherit;
+}
