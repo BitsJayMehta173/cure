@@ -1,0 +1,361 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Google Sans', 'Manrope', 'Segoe UI', sans-serif;
+    background: #f8fafd;
+    color: #1f2937;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+.app {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 28px;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    padding: 18px 22px;
+    background: #1a73e8;
+    border-radius: 12px;
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(26, 115, 232, 0.18);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.badge {
+    background: #e8f0fe;
+    color: #1967d2;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.subtitle {
+    color: #d2e3fc;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.header-btn {
+    background: #ffffff;
+    border: 1px solid #c6dafc;
+    color: #1967d2;
+    padding: 9px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    transition: background .2s, box-shadow .2s;
+}
+
+.header-btn:hover {
+    background: #f1f6fe;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.2);
+}
+
+/* =========================
+   KPI CARDS
+========================= */
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: #ffffff;
+    border: 1px solid #e0e5eb;
+    color: #1f2937;
+    border-radius: 15px;
+    padding: 23px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+}
+
+.stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #718096;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+/* =========================
+   PIPELINE
+========================= */
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.section-header h2 {
+    font-size: 14px;
+    color: #52647f;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.count {
+    color: #718096;
+    font-size: 12px;
+}
+
+.pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+
+.column {
+    background: #f1f3f4;
+    border: 1px solid #e0e3e7;
+    border-radius: 14px;
+    padding: 14px;
+    min-height: 430px;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.05);
+}
+
+.column-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.column-title span:first-child {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.column-number {
+    background: #e8eaed;
+    color: #5f6368;
+    font-size: 11px;
+    padding: 4px 7px;
+    border-radius: 6px;
+}
+
+/* =========================
+   PERSON / CASE CARDS
+========================= */
+
+.case-card {
+    background: #ffffff;
+    border: 1px solid #e0e5eb;
+    border-radius: 11px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: .2s;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+}
+
+.case-card:hover {
+    transform: translateY(-2px);
+    border-color: #9fb3cd;
+}
+
+.person {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 11px;
+    font-weight: bold;
+    background: #414867;
+}
+
+.person-info {
+    flex: 1;
+}
+
+.person-name {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.day {
+    color: #718096;
+    font-size: 10px;
+    margin-top: 3px;
+}
+
+.amount {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 8px 0;
+}
+
+.details {
+    font-size: 10px;
+    line-height: 1.6;
+    color: #64748b;
+}
+
+.status {
+    margin-top: 10px;
+    display: inline-block;
+    padding: 4px 7px;
+    border-radius: 5px;
+    font-size: 9px;
+    font-weight: bold;
+}
+
+.stable {
+    background: #e6f4ea;
+    color: #188038;
+}
+
+.warning {
+    background: #fef7e0;
+    color: #b06000;
+}
+
+.critical {
+    background: #fce8e6;
+    color: #c5221f;
+}
+
+.blue {
+    background: #e8f0fe;
+    color: #1967d2;
+}
+
+/* =========================
+   BOTTOM AREA
+========================= */
+
+.bottom {
+    margin-top: 25px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+}
+
+.panel {
+    background: #ffffff;
+    border: 1px solid #e0e5eb;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+}
+
+.panel h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 15px;
+}
+
+.activity {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #e7edf5;
+    font-size: 12px;
+}
+
+.activity:last-child {
+    border-bottom: none;
+}
+
+.activity span:last-child {
+    color: #718096;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 1000px) {
+
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pipeline {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .bottom {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 650px) {
+
+    .app {
+        padding: 15px;
+    }
+
+    .header {
+        align-items: flex-start;
+        gap: 15px;
+        flex-direction: column;
+    }
+
+    .stats {
+        grid-template-columns: 1fr;
+    }
+
+    .pipeline {
+        grid-template-columns: 1fr;
+    }
+}
