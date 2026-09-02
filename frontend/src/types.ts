@@ -1,4 +1,4 @@
-export type Status = 'warning' | 'stable' | 'critical'
+export type Status = 'warning' | 'stable' | 'critical' | 'success' | 'error'
 
 export type Appointment = {
   initials: string
@@ -10,6 +10,20 @@ export type Appointment = {
   status: string
   statusType: Status
   tradeoffLabel?: string
+  distanceKm?: number
+  waitDays?: number
+  // Transport fields from ML pipeline
+  transportMode?: string
+  transportEmoji?: string
+  transportTimeHrs?: number
+  transportDescription?: string
+  isLongDistance?: boolean
+  shiftHours?: string
+  yearsOfExperience?: number
+  totalPatientsTreated?: number
+  avgMinutesPerPatient?: number
+  aiScore?: number
+  doctorId?: number
 }
 
 export type Hospital = {
