@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import './App.css'
-import { baseHospitals, expandedRadiusHospitals, aiOptimizerHospitals, crossBorderHospitals, customFilterHospitals, recentActivity, stats, systemStatus } from './data'
+import { baseHospitals, expandedRadiusHospitals, aiOptimizerHospitals, crossBorderHospitals, customFilterHospitals, recentActivity, stats } from './data'
 import { HospitalColumn } from './components/HospitalColumn'
 import { Panel } from './components/Panel'
 import { Slider } from './components/Slider'
