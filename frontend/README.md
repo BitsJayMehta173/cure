@@ -1,6 +1,6 @@
-# React + TypeScript + Vite
+# Hospital Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + TypeScript dashboard built with Vite, React Compiler, and OxLint.
 
 Currently, two official plugins are available:
 
@@ -9,7 +9,7 @@ Currently, two official plugins are available:
 
 ## React Compiler
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+React Compiler is enabled through Vite's native Oxc transform.
 
 ## Expanding the Oxlint configuration
 
