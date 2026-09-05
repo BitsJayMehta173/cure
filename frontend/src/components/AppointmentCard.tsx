@@ -24,14 +24,12 @@ export function AppointmentCard({
   appointment, 
   onSelect,
   onToggleCompare,
-  isCompared,
-  urgencyScore
+  isCompared
 }: { 
   appointment: Appointment, 
   onSelect?: (appointment: Appointment) => void,
   onToggleCompare?: (appointment: Appointment) => void,
-  isCompared?: boolean,
-  urgencyScore?: number
+  isCompared?: boolean
 }) {
   return (
     <article className={`case-card ${isCompared ? 'compared' : ''}`} onClick={() => onSelect && onSelect(appointment)}>

@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import { HospitalColumn } from './components/HospitalColumn'
-import { Panel } from './components/Panel'
 import { Slider } from './components/Slider'
 import { StatCard } from './components/StatCard'
 import type { Appointment, Hospital } from './types'
 import { dict, type Language } from './translations'
+import { AppHeader } from './booking/components/Header/AppHeader'
+import { BookingRoot } from './booking/BookingRoot'
 
 function App() {
   // Phase 4 State
+  const [activeTab, setActiveTab] = useState<'recommendation' | 'booking'>('recommendation')
   const [lang, setLang] = useState<Language>('en')
   const [isOffline, setIsOffline] = useState(false)
   const t = dict[lang]
@@ -231,12 +233,17 @@ function App() {
 
   return (
     <main className="app">
-      {/* Localization Header */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px', gap: '8px' }}>
-        <button className="header-btn" style={{ padding: '8px 16px', minWidth: 'auto', background: lang === 'en' ? 'var(--color-primary)' : 'var(--color-surface)', color: lang === 'en' ? '#fff' : 'var(--color-primary)' }} onClick={() => setLang('en')}>English</button>
-        <button className="header-btn" style={{ padding: '8px 16px', minWidth: 'auto', background: lang === 'hi' ? 'var(--color-primary)' : 'var(--color-surface)', color: lang === 'hi' ? '#fff' : 'var(--color-primary)' }} onClick={() => setLang('hi')}>हिंदी (Hindi)</button>
-      </div>
+      <AppHeader 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        lang={lang} 
+        setLang={setLang} 
+      />
 
+      {activeTab === 'booking' ? (
+        <BookingRoot />
+      ) : (
+        <>
       <header className="header" style={{ flexDirection: 'column' }}>
         <div style={{ display: 'flex', gap: '16px', width: '100%', justifyContent: 'center' }}>
           <select className="disease-select" aria-label="Select disease" value={disease} onChange={(event) => setDisease(event.target.value)}>
@@ -567,7 +574,6 @@ function App() {
                 onSelectAppointment={setSelectedAppointment}
                 onToggleCompare={handleToggleCompare}
                 compareList={compareList}
-                urgencyScore={urgencyScore}
               />
             ))}
           </section>
@@ -623,6 +629,7 @@ function App() {
           </div>
         </div>
       </section>
+      </>)}
     </main>
   )
 }

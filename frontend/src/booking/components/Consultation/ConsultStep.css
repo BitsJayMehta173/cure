@@ -1,0 +1,102 @@
+.consult-step {
+  animation: fadeIn 0.4s ease-out;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.consult-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.consult-header h2 {
+  font-size: 28px;
+  color: var(--color-text-main);
+  margin: 0 0 8px 0;
+}
+
+.action-blocks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.action-card {
+  background: var(--color-surface-solid);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.action-card:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+.action-icon {
+  font-size: 48px;
+  margin-bottom: 24px;
+}
+
+.action-card h3 {
+  font-size: 22px;
+  margin: 0 0 12px 0;
+  color: var(--color-text-main);
+}
+
+.action-card p {
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0 0 32px 0;
+}
+
+.action-btn {
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  margin-top: auto;
+  transition: background 0.2s;
+}
+
+/* Specific Accents */
+.new-apt {
+  border-color: #2563eb;
+}
+
+.new-apt .action-btn {
+  background: #2563eb;
+  color: white;
+}
+
+.new-apt:hover .action-btn {
+  background: #1d4ed8;
+}
+
+.view-apt {
+  border-color: #7c3aed;
+}
+
+.view-apt .action-btn {
+  background: #7c3aed;
+  color: white;
+}
+
+.view-apt:hover .action-btn {
+  background: #6d28d9;
+}
+
+@media (max-width: 600px) {
+  .action-blocks {
+    grid-template-columns: 1fr;
+  }
+}

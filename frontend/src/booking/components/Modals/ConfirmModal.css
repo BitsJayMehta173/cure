@@ -1,0 +1,186 @@
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s;
+}
+
+.confirm-modal {
+  background: var(--color-surface-solid);
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 450px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-default);
+}
+
+.confirm-modal h2 {
+  margin: 0 0 24px 0;
+  color: var(--color-text-main);
+  text-align: center;
+}
+
+.preview-card {
+  background: var(--color-bg-main);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.doc-info {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.doc-info h3 {
+  margin: 0;
+  color: var(--color-text-main);
+}
+
+.doc-info span {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.time-calc {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px dashed var(--border-default);
+}
+
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.calc-row strong {
+  color: var(--color-text-main);
+}
+
+.calc-divider {
+  height: 1px;
+  background: var(--border-default);
+  margin: 12px 0;
+}
+
+.calc-row.highlight {
+  margin-bottom: 0;
+  font-size: 16px;
+  color: var(--color-primary);
+}
+
+.calc-row.highlight strong {
+  color: var(--color-primary);
+  font-size: 18px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn {
+  background: var(--color-surface);
+  border: 1px solid var(--border-default);
+  color: var(--color-text-main);
+}
+
+.cancel-btn:hover {
+  background: var(--color-bg-main);
+}
+
+.confirm-btn {
+  background: var(--color-primary);
+  border: none;
+  color: white;
+}
+
+.confirm-btn:hover {
+  background: var(--color-primary-hover);
+}
+
+.success-view {
+  text-align: center;
+}
+
+.success-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.token-display {
+  background: #f0fdf4;
+  border: 2px dashed #22c55e;
+  padding: 20px;
+  border-radius: var(--radius-md);
+  margin: 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.token-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #15803d;
+  letter-spacing: 1px;
+}
+
+.token-code {
+  font-size: 24px;
+  font-weight: 800;
+  color: #166534;
+  font-family: monospace;
+}
+
+.confirm-details {
+  text-align: left;
+  background: var(--color-bg-main);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.confirm-details p {
+  margin: 0;
+}
+
+.done-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}

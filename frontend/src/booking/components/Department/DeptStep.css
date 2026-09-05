@@ -1,0 +1,67 @@
+.dept-step {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.dept-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.dept-header h2 {
+  font-size: 28px;
+  color: var(--color-text-main);
+  margin: 0 0 8px 0;
+}
+
+.dept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.dept-card {
+  background: var(--color-surface-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dept-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-light);
+}
+
+.dept-icon-bg {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+}
+
+.dept-card h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-text-main);
+  flex: 1;
+}
+
+.dept-arrow {
+  font-size: 20px;
+  font-weight: bold;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.2s;
+}
+
+.dept-card:hover .dept-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}

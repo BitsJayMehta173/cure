@@ -6,14 +6,12 @@ export function HospitalColumn({
   hospital,
   onSelectAppointment,
   onToggleCompare,
-  compareList = [],
-  urgencyScore
+  compareList = []
 }: { 
   hospital: Hospital,
   onSelectAppointment?: (app: Appointment) => void,
   onToggleCompare?: (app: Appointment) => void,
-  compareList?: Appointment[],
-  urgencyScore?: number
+  compareList?: Appointment[]
 }) {
   return (
     <article className="column">
@@ -26,7 +24,6 @@ export function HospitalColumn({
             onSelect={onSelectAppointment}
             onToggleCompare={onToggleCompare}
             isCompared={compareList.some(a => a.token === appointment.token && a.name === appointment.name)}
-            urgencyScore={urgencyScore}
           />
         ))}
       </Slider>
