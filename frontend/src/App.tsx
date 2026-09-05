@@ -75,6 +75,7 @@ function App() {
   // Phase 3 State
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [simulateFailure, setSimulateFailure] = useState(false) // Default OFF so real bookings work
+  const [symptomOnset, setSymptomOnset] = useState('As soon as possible');
   const [showRematch, setShowRematch] = useState(false)
   const [patientName, setPatientName] = useState('')
 
@@ -89,14 +90,30 @@ function App() {
     if (requireSenior) url += `&requireSenior=true`;
     if (requireFastQueue) url += `&requireFastQueue=true`;
 
+    let activeMaxWait = 30;
+    if (symptomOnset === 'Less than 24 hours') activeMaxWait = 1;
+    else if (symptomOnset === '1-3 days') activeMaxWait = 3;
+
+    let finalMaxWait = activeMaxWait;
+    let finalMaxTravel = 10000;
+    let applyCustomFilter = (activeMaxWait < 30);
+
     if (isAI) {
       url += '&aiOptimize=true';
       if (prefExpand) url += '&expandRadius=true';
       if (prefQueue) url += '&lowestQueueTime=true';
-      if (prefCustom) url += `&customFilter=true&maxWait=${maxWait}&maxTravel=${maxTravel}`;
+      if (prefCustom) {
+        applyCustomFilter = true;
+        finalMaxWait = maxWait === 30 ? activeMaxWait : Math.min(maxWait, activeMaxWait);
+        finalMaxTravel = maxTravel === 300 ? 10000 : maxTravel;
+      }
       setExpansionMode('AI Multi-Preference');
     } else {
       setExpansionMode('default');
+    }
+
+    if (applyCustomFilter) {
+      url += `&customFilter=true&maxWait=${finalMaxWait}&maxTravel=${finalMaxTravel}`;
     }
     
     try {
@@ -367,12 +384,12 @@ function App() {
                 Max Acceptable Wait Time:
                 <input 
                   type="range" 
-                  min="1" max="14" 
+                  min="1" max="30" 
                   value={maxWait} 
                   onChange={(e) => setMaxWait(Number(e.target.value))}
                   style={{width: '100%', marginTop: '8px'}} 
                 />
-                <div style={{textAlign: 'right', fontWeight: 'bold', fontSize: '13px', color: 'var(--color-primary)'}}>&lt; {maxWait} Days</div>
+                <div style={{textAlign: 'right', fontWeight: 'bold', fontSize: '13px', color: 'var(--color-primary)'}}>{maxWait === 30 ? '> 29 Days' : `< ${maxWait} Days`}</div>
               </label>
 
               <label style={{marginTop: '20px', display: 'block'}}>
@@ -384,7 +401,7 @@ function App() {
                   onChange={(e) => setMaxTravel(Number(e.target.value))}
                   style={{width: '100%', marginTop: '8px'}} 
                 />
-                <div style={{textAlign: 'right', fontWeight: 'bold', fontSize: '13px', color: 'var(--color-primary)'}}>&lt; {maxTravel} km</div>
+                <div style={{textAlign: 'right', fontWeight: 'bold', fontSize: '13px', color: 'var(--color-primary)'}}>{maxTravel === 300 ? '> 295 km' : `< ${maxTravel} km`}</div>
               </label>
 
               <label style={{marginTop: '20px', display: 'block'}}>
@@ -437,7 +454,13 @@ function App() {
             <div className="triage-form">
               <label>
                 Symptom Onset:
-                <select className="disease-select" style={{width: '100%', marginTop: '8px'}}>
+                <select 
+                  className="disease-select" 
+                  style={{width: '100%', marginTop: '8px'}}
+                  value={symptomOnset}
+                  onChange={(e) => setSymptomOnset(e.target.value)}
+                >
+                  <option>As soon as possible</option>
                   <option>Less than 24 hours</option>
                   <option>1-3 days</option>
                   <option>More than a week</option>

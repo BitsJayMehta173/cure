@@ -111,9 +111,9 @@ public class SearchController {
                     : LocalDate.now();
             long bookedOnTarget = 0;
             int daysToWait = 0;
-            java.time.LocalTime now = journeyTime != null && !journeyTime.isEmpty()
+            java.time.LocalTime now = journeyTime != null && !journeyTime.isEmpty() 
                     ? java.time.LocalTime.parse(journeyTime)
-                    : java.time.LocalTime.now();
+                    : java.time.LocalTime.of(8, 0); // Default to 8 AM for demo so same-day slots show up
 
             // Scan up to 30 days forward to find an open AND REACHABLE slot
             for (int d = 0; d < 30; d++) {
@@ -156,7 +156,7 @@ public class SearchController {
             appt.setDoctorId(doctor.getId());
             appt.setName(doctor.getDoctorName());
             appt.setInitials(getInitials(doctor.getDoctorName()));
-            appt.setQualification("MD, " + dept.getDepartmentName());
+            appt.setQualification(doctor.getQualification() != null ? doctor.getQualification() : "MD, " + dept.getDepartmentName());
             appt.setDepartment(dept.getDepartmentName());
             appt.setHospitalName(hospital.getName());
             appt.setDate(targetDate.toString());
@@ -209,7 +209,7 @@ public class SearchController {
                 if (daysToWait > maxWait || distanceKm > maxTravel) {
                     continue; // Skip this appointment
                 }
-                appt.setTradeoffLabel(String.format("Matches Custom Filter | Wait: %d day(s) | Dist: %.0f km", daysToWait, distanceKm));
+                appt.setTradeoffLabel(String.format("AI Score: %.0f | Wait: %d day(s) | Dist: %.0f km", displayScore, daysToWait, distanceKm));
             }
 
             hospitalDTO.getAppointments().add(appt);
@@ -224,19 +224,21 @@ public class SearchController {
         // ALWAYS sort results based on the optimization goal
         for (HospitalDTO dto : resultList) {
             dto.getAppointments().sort((a, b) -> {
-                if (lowestQueueTime || urgency == 10) {
+                if (aiOptimize) {
+                    return b.getAiScore().compareTo(a.getAiScore());
+                } else if (lowestQueueTime || urgency == 10) {
                     // Nearest possible time
                     int waitCompare = a.getWaitDays().compareTo(b.getWaitDays());
                     if (waitCompare != 0) return waitCompare;
                     return a.getDistanceKm().compareTo(b.getDistanceKm());
                 } else if (urgency == 1) {
-                    // Nearest possible distance
-                    int distCompare = a.getDistanceKm().compareTo(b.getDistanceKm());
-                    if (distCompare != 0) return distCompare;
-                    return a.getWaitDays().compareTo(b.getWaitDays());
+                    // Nearest possible distance (Wait time is still primary as per user request)
+                    int waitCompare = a.getWaitDays().compareTo(b.getWaitDays());
+                    if (waitCompare != 0) return waitCompare;
+                    return a.getDistanceKm().compareTo(b.getDistanceKm());
                 } else {
-                    // Both (Urgency = 5) - Use AI Score
-                    return b.getAiScore().compareTo(a.getAiScore()); // Descending AI Score
+                    // Optimal Tradeoff for Find Match
+                    return b.getAiScore().compareTo(a.getAiScore()); 
                 }
             });
         }
@@ -247,15 +249,18 @@ public class SearchController {
             var a = h1.getAppointments().get(0);
             var b = h2.getAppointments().get(0);
             
-            if (lowestQueueTime || urgency == 10) {
+            if (aiOptimize) {
+                return b.getAiScore().compareTo(a.getAiScore());
+            } else if (lowestQueueTime || urgency == 10) {
                 int waitCompare = a.getWaitDays().compareTo(b.getWaitDays());
                 if (waitCompare != 0) return waitCompare;
                 return a.getDistanceKm().compareTo(b.getDistanceKm());
             } else if (urgency == 1) {
-                int distCompare = a.getDistanceKm().compareTo(b.getDistanceKm());
-                if (distCompare != 0) return distCompare;
-                return a.getWaitDays().compareTo(b.getWaitDays());
+                int waitCompare = a.getWaitDays().compareTo(b.getWaitDays());
+                if (waitCompare != 0) return waitCompare;
+                return a.getDistanceKm().compareTo(b.getDistanceKm());
             } else {
+                // Optimal Tradeoff for Find Match
                 return b.getAiScore().compareTo(a.getAiScore());
             }
         });

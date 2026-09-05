@@ -16,6 +16,9 @@ public class Doctor {
     @Column(name = "doctor_name", nullable = false)
     private String doctorName;
 
+    @Column(name = "qualification")
+    private String qualification;
+
     @Column(name = "daily_limit", nullable = false)
     private Integer dailyLimit;
 
@@ -34,6 +37,8 @@ public class Doctor {
     public void setDepartment(HospitalDepartment department) { this.department = department; }
     public String getDoctorName() { return doctorName; }
     public void setDoctorName(String doctorName) { this.doctorName = doctorName; }
+    public String getQualification() { return qualification; }
+    public void setQualification(String qualification) { this.qualification = qualification; }
     public Integer getDailyLimit() { return dailyLimit; }
     public void setDailyLimit(Integer dailyLimit) { this.dailyLimit = dailyLimit; }
     public Integer getYearsOfExperience() { return yearsOfExperience; }

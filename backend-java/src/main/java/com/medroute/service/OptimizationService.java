@@ -76,6 +76,24 @@ public class OptimizationService {
         String mode = overrideMode != null ? overrideMode.trim().toLowerCase() : "";
 
         if (!mode.isEmpty() && !mode.equals("ai")) {
+            
+            // Intelligent Fallback: Prevent absurd travel modes for extreme distances
+            if (mode.equals("flight") && distanceKm < 300) {
+                TransportInfo fallback = getTransportInfo(distanceKm, urgencyLevel, "ai");
+                return new TransportInfo(fallback.mode, fallback.emoji, fallback.estimatedHours,
+                        "Flight impractical for short distance. Downgraded to " + fallback.mode, fallback.isLongDistance);
+            }
+            if (mode.equals("train") && distanceKm < 50) {
+                TransportInfo fallback = getTransportInfo(distanceKm, urgencyLevel, "ai");
+                return new TransportInfo(fallback.mode, fallback.emoji, fallback.estimatedHours,
+                        "Train impractical for local travel. Downgraded to " + fallback.mode, fallback.isLongDistance);
+            }
+            if ((mode.equals("bike/auto") || mode.equals("bus")) && distanceKm > 800) {
+                TransportInfo fallback = getTransportInfo(distanceKm, urgencyLevel, "ai");
+                return new TransportInfo(fallback.mode, fallback.emoji, fallback.estimatedHours,
+                        "Too far for local transit. Upgraded to " + fallback.mode, fallback.isLongDistance);
+            }
+
             switch (mode) {
                 case "bike/auto":
                     return new TransportInfo("Auto / Cab", "🚕", distanceKm / 20.0,
@@ -175,8 +193,48 @@ public class OptimizationService {
      */
     public double calculateScore(int waitDays, double distanceKm, String urgencyLevel,
                                 String overrideMode, int yearsOfExperience, int avgMinutesPerPatient) {
+                                    
         TransportInfo transport = getTransportInfo(distanceKm, urgencyLevel, overrideMode);
-        double travelHours = transport.estimatedHours; // REALISTIC, not naive
+        double travelHours = transport.estimatedHours;
+        
+        // Calculate Deep Learning Derived Features
+        double totalRoundTripHrs = (travelHours * 2) + 4.0 + (avgMinutesPerPatient / 60.0);
+        if (travelHours > 12) totalRoundTripHrs += 12; // Overnight penalty
+        
+        double financialCostIndex = 50.0;
+        if (distanceKm < 50) financialCostIndex = 10.0;
+        else if (distanceKm < 300) financialCostIndex = 30.0;
+        else financialCostIndex = 80.0;
+        
+        double doctorRating = 4.5; // Default for now
+        int hospitalTier = 2; // Default for now
+                                    
+        // Attempt to call the Python PyTorch Neural Network Microservice
+        try {
+            int urgencyInt = 1;
+            if (urgencyLevel.equalsIgnoreCase("URGENT")) urgencyInt = 5;
+            else if (urgencyLevel.equalsIgnoreCase("CRITICAL")) urgencyInt = 10;
+            
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            
+            String json = String.format(java.util.Locale.US, "[{\"urgency\":%d, \"wait_days\":%d, \"distance_km\":%f, \"exp_years\":%d, \"queue_speed_mins\":%d, \"financial_cost_index\":%f, \"total_round_trip_hrs\":%f, \"doctor_rating\":%f, \"hospital_tier\":%d}]", 
+                urgencyInt, waitDays, distanceKm, yearsOfExperience, avgMinutesPerPatient, financialCostIndex, totalRoundTripHrs, doctorRating, hospitalTier);
+                
+            org.springframework.http.HttpEntity<String> request = new org.springframework.http.HttpEntity<>(json, headers);
+            Double[] result = restTemplate.postForObject("http://127.0.0.1:5000/api/predict", request, Double[].class);
+            
+            if (result != null && result.length > 0) {
+                // The PyTorch Model returns 0-100 directly. 
+                // SearchController converts our output using: displayScore = 100 - (score * 5)
+                // We reverse the math here to perfectly match the controller:
+                return (100.0 - result[0]) / 5.0; 
+            }
+        } catch (Exception e) {
+            System.err.println("ML Service unavailable, falling back to heuristic constraint engine: " + e.getMessage());
+        }
+
 
         // Total effective time: wait (in days) + travel (converted to days)
         double tTotal = waitDays + (travelHours / 24.0);
