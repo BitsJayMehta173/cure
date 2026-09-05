@@ -3,12 +3,18 @@ package com.medroute.controller;
 import com.medroute.dto.AppointmentDTO;
 import com.medroute.dto.HospitalDTO;
 import com.medroute.entity.Doctor;
+import com.medroute.entity.Holiday;
 import com.medroute.repository.AppointmentRepository;
 import com.medroute.repository.DoctorRepository;
+import com.medroute.repository.HolidayRepository;
+import com.medroute.repository.HospitalDepartmentRepository;
+import com.medroute.repository.HospitalRepository;
+import com.medroute.service.BookingFlowService;
 import com.medroute.service.OptimizationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -33,6 +39,18 @@ public class SearchController {
 
     @Autowired
     private OptimizationService optimizationService;
+
+    @Autowired
+    private BookingFlowService bookingFlowService;
+
+    @Autowired
+    private HolidayRepository holidayRepository;
+
+    @Autowired
+    private HospitalRepository hospitalRepository;
+
+    @Autowired
+    private HospitalDepartmentRepository hospitalDepartmentRepository;
 
     @GetMapping("/state")
     public List<HospitalDTO> searchByState(
@@ -118,34 +136,46 @@ public class SearchController {
             // Scan up to 30 days forward to find an open AND REACHABLE slot
             for (int d = 0; d < 30; d++) {
                 LocalDate currentDate = targetDate.plusDays(d);
-                bookedOnTarget = appointmentRepository.countByDoctorIdAndDateStr(
-                        doctor.getId(), currentDate.toString());
-                
-                if (bookedOnTarget < doctor.getDailyLimit()) {
+
+                // Skip Sundays — hospitals typically closed
+                if (currentDate.getDayOfWeek() == DayOfWeek.SUNDAY) continue;
+
+                // Skip holidays (national or state-specific)
+                List<Holiday> holidays = holidayRepository.findHolidaysForDate(currentDate, state);
+                if (!holidays.isEmpty()) continue; // Holiday = no slots
+
+                bookedOnTarget = appointmentRepository.countByDoctorIdAndDateStrAndStatusNot(
+                        doctor.getId(), currentDate.toString(), "cancelled");
+
+                if (bookedOnTarget < java.util.Optional.ofNullable(doctor.getDailyLimit()).orElse(0)) {
                     if (d == 0) {
-                        // Today: verify patient can reach hospital before appointment time
-                        int currentToken = (int) bookedOnTarget + 1;
+                        // Today: verify patient can reach hospital before appointment time.
+                        // Use gap-filling so cancelled tokens are reused and the displayed
+                        // appointment time doesn't lie after a cancellation.
+                        int currentToken = bookingFlowService.nextAvailableToken(
+                                doctor.getId(), currentDate, java.util.Optional.ofNullable(doctor.getDailyLimit()).orElse(0));
+                        if (currentToken == 0) continue;
                         int totalMinutes = (currentToken - 1) * avgMins;
                         java.time.LocalTime apptTime = java.time.LocalTime.of(9, 0).plusMinutes(totalMinutes);
                         java.time.LocalTime arrivalTime = now.plusMinutes((long) (transport.estimatedHours * 60));
-                        
+
                         // If arrival wraps midnight or is after appointment time, skip to next day
                         if (arrivalTime.isBefore(now) || arrivalTime.isAfter(apptTime)) {
-                            continue; 
+                            continue;
                         }
                     }
-                    
+
                     daysToWait = d;
                     // Fix: Update targetDate to the actual found date so the DTO gets the right date
-                    targetDate = currentDate; 
+                    targetDate = currentDate;
                     break;
                 }
             }
 
             // Re-count for the chosen target date (final accurate value)
-            bookedOnTarget = appointmentRepository.countByDoctorIdAndDateStr(
-                    doctor.getId(), targetDate.toString());
-            int remainingSlots = doctor.getDailyLimit() - (int) bookedOnTarget;
+            bookedOnTarget = appointmentRepository.countByDoctorIdAndDateStrAndStatusNot(
+                    doctor.getId(), targetDate.toString(), "cancelled");
+            int remainingSlots = Math.max(0, java.util.Optional.ofNullable(doctor.getDailyLimit()).orElse(0) - (int) bookedOnTarget);
 
             // Score now uses realistic transport time + doctor intelligence bonuses
             double score = optimizationService.calculateScore(daysToWait, distanceKm, urgencyStr, travelMode, exp, avgMins);
@@ -161,7 +191,12 @@ public class SearchController {
             appt.setHospitalName(hospital.getName());
             appt.setDate(targetDate.toString());
 
-            int currentToken = (int) bookedOnTarget + 1;
+            int currentToken = bookingFlowService.nextAvailableToken(
+                    doctor.getId(), targetDate, java.util.Optional.ofNullable(doctor.getDailyLimit()).orElse(0));
+            if (currentToken == 0) {
+                // Should not happen — we already passed the full check — but skip defensively
+                continue;
+            }
             appt.setToken(currentToken);
 
             // Use dynamic avgMins instead of hardcoded 15
@@ -198,10 +233,10 @@ public class SearchController {
             }
 
             if (aiOptimize) {
-                appt.setTradeoffLabel(String.format("AI Score: %.0f | Wait: %d day(s) | Dist: %.0f km",
-                        displayScore, daysToWait, distanceKm));
+                appt.setTradeoffLabel(String.format("AI Score: %.0f · %d slot(s) left today",
+                        displayScore, remainingSlots));
             } else {
-                appt.setTradeoffLabel(String.format("%d slot(s) left | %.0f km away", remainingSlots, distanceKm));
+                appt.setTradeoffLabel(String.format("%d slot(s) left today", remainingSlots));
             }
 
             // Custom Filter: Exclude if wait or travel is too high
@@ -209,7 +244,8 @@ public class SearchController {
                 if (daysToWait > maxWait || distanceKm > maxTravel) {
                     continue; // Skip this appointment
                 }
-                appt.setTradeoffLabel(String.format("AI Score: %.0f | Wait: %d day(s) | Dist: %.0f km", displayScore, daysToWait, distanceKm));
+                appt.setTradeoffLabel(String.format("AI Score: %.0f · %d slot(s) left today",
+                        displayScore, remainingSlots));
             }
 
             hospitalDTO.getAppointments().add(appt);

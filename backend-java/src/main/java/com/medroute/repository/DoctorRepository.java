@@ -36,4 +36,30 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT d FROM Doctor d WHERE d.id = :id")
     Optional<Doctor> findByIdWithLock(@Param("id") Long id);
+
+    /**
+     * Fetch all doctors with department AND hospital eagerly loaded — required for
+     * the seeder when ddl-auto=create (session closes after schema creation,
+     * lazy proxies fail).
+     */
+    @Query("SELECT d FROM Doctor d JOIN FETCH d.department dept JOIN FETCH dept.hospital")
+    List<Doctor> findAllWithDepartment();
+
+    /**
+     * Fetch doctors by hospital + department with full eager load (no lazy proxies).
+     * Used by BookingFlowService to avoid N+1 in getMonthlySlots, previewToken, confirmBooking.
+     */
+    @Query("SELECT d FROM Doctor d " +
+           "JOIN FETCH d.department dept " +
+           "JOIN FETCH dept.hospital " +
+           "WHERE dept.id = :deptId " +
+           "AND dept.hospital.id = :hospitalId")
+    List<Doctor> findByHospitalIdAndDepartmentId(@Param("hospitalId") Long hospitalId,
+                                                 @Param("deptId") Long deptId);
+
+    /**
+     * Sum of all doctors' dailyLimit in a single query — used by StatsController.
+     */
+    @Query("SELECT COALESCE(SUM(d.dailyLimit), 0) FROM Doctor d")
+    long sumDailyLimit();
 }
