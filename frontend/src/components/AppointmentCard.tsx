@@ -38,18 +38,15 @@ export function AppointmentCard({
         <div className="person-info">
           <div className="person-name">{appointment.name}</div>
           <div className="day">{appointment.qualification}</div>
-          {(appointment.yearsOfExperience !== undefined || appointment.totalPatientsTreated !== undefined || appointment.avgMinutesPerPatient !== undefined) && (
+          {(appointment.yearsOfExperience !== undefined || appointment.totalPatientsTreated !== undefined) && (
             <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'nowrap', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {appointment.yearsOfExperience !== undefined && (
                 <span style={{ color: appointment.yearsOfExperience >= 15 ? '#059669' : 'var(--color-text-muted)' }}>
-                  {appointment.yearsOfExperience >= 15 ? '⭐' : '🩺'} {appointment.yearsOfExperience}y
+                  {appointment.yearsOfExperience >= 15 ? '⭐' : '🩺'} {appointment.yearsOfExperience}y EXP
                 </span>
               )}
               {appointment.totalPatientsTreated !== undefined && (
                 <><span style={{ opacity: 0.4 }}>·</span><span style={{ color: 'var(--color-primary)' }}>👥 {(appointment.totalPatientsTreated / 1000).toFixed(1)}k</span></>
-              )}
-              {appointment.avgMinutesPerPatient !== undefined && (
-                <><span style={{ opacity: 0.4 }}>·</span><span style={{ color: appointment.avgMinutesPerPatient <= 12 ? '#d97706' : 'var(--color-text-muted)' }}>{appointment.avgMinutesPerPatient <= 12 ? '⚡' : '⏱'} {appointment.avgMinutesPerPatient}m/pt</span></>
               )}
             </div>
           )}
@@ -93,17 +90,21 @@ export function AppointmentCard({
             </div>
           )}
           <div style={{ color: 'var(--color-text-main)', fontWeight: 600 }}>
-            Avg time per patient: <span style={{ color: 'var(--color-primary)' }}>~{appointment.avgMinutesPerPatient ?? 15} mins</span>
+            Avg time per patient: <span style={{ color: 'var(--color-primary)' }}>~{appointment.avgMinutesPerPatient ?? 15} min<span style={{ opacity: 0.7 }}>/patient</span></span>
           </div>
           {appointment.transportMode && (() => {
             const hrs = appointment.transportTimeHrs ?? 0;
             const timeLabel = hrs < 1
               ? `~${Math.round(hrs * 60)} mins`
               : `~${hrs.toFixed(1)} hrs`;
+            const dist = appointment.distanceKm ?? 0;
+            const distLabel = dist >= 1
+              ? `${dist.toFixed(0)} km away`
+              : `${(dist * 1000).toFixed(0)} m away`;
             return (
-              <div style={{ marginTop: '4px', padding: '5px 7px', borderRadius: '4px', background: appointment.isLongDistance ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)', border: `1px solid ${appointment.isLongDistance ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.2)'}` }}>
+              <div style={{ marginTop: '4px', padding: '6px 8px', borderRadius: '4px', background: appointment.isLongDistance ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)', border: `1px solid ${appointment.isLongDistance ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.2)'}` }}>
                 <div style={{ fontWeight: 700, color: appointment.isLongDistance ? '#b91c1c' : 'var(--color-primary)' }}>
-                  {appointment.transportEmoji} {appointment.transportMode} — {timeLabel}
+                  {appointment.transportEmoji} {appointment.transportMode} · {distLabel} · {timeLabel}
                 </div>
                 <div style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>{appointment.transportDescription}</div>
               </div>

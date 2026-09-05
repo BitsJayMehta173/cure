@@ -80,10 +80,11 @@ export const BookingRoot: React.FC = () => {
         )}
         
         {state.currentStep === 'calendar' && state.selectedHospitalId && state.selectedDepartmentId && state.selectedProfileId && (
-          <CalendarStep 
+          <CalendarStep
             hospitalId={state.selectedHospitalId}
             deptId={state.selectedDepartmentId}
             profileId={state.selectedProfileId}
+            stateName={state.selectedState || ''}
             onBookingSuccess={() => updateState({ currentStep: 'appointments' })}
             onBack={() => updateState({ currentStep: 'department' })}
           />

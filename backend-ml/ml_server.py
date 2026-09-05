@@ -9,9 +9,10 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
-features = ['urgency', 'wait_days', 'distance_km', 'exp_years', 
-            'queue_speed_mins', 'financial_cost_index', 'total_round_trip_hrs', 
-            'doctor_rating', 'hospital_tier']
+features = ['urgency', 'wait_days', 'distance_km', 'exp_years',
+            'queue_speed_mins', 'financial_cost_index', 'total_round_trip_hrs',
+            'doctor_rating', 'hospital_tier',
+            'transport_mode', 'flight_viable']
 
 class ClinicalNet(nn.Module):
     def __init__(self, input_dim):
@@ -42,6 +43,10 @@ model = ClinicalNet(len(features))
 model.load_state_dict(torch.load('medroute_nn_model.pt', weights_only=True))
 model.eval()
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok", "model": "ClinicalNet", "version": "1.0"})
+
 @app.route('/api/predict', methods=['POST'])
 def predict():
     data = request.json
@@ -58,6 +63,8 @@ def predict():
             elif col == 'total_round_trip_hrs': df[col] = df['distance_km'] / 50.0 * 2.0 + 4.0
             elif col == 'doctor_rating': df[col] = 4.0
             elif col == 'hospital_tier': df[col] = 2
+            elif col == 'transport_mode': df[col] = 0  # Auto
+            elif col == 'flight_viable': df[col] = 0
             else:
                 return jsonify({"error": f"Missing column: {col}"}), 400
             
@@ -77,4 +84,4 @@ def predict():
     return jsonify(preds)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='127.0.0.1', port=5000, debug=False)

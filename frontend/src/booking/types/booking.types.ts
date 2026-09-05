@@ -45,6 +45,17 @@ export interface TokenPreview {
   doctorId: number;
 }
 
+export interface AvailableDoctor {
+  doctorId: number;
+  doctorName: string;
+  qualification: string;
+  yearsOfExperience: number;
+  avgMinutesPerPatient: number;
+  tokenNumber: number;
+  remainingSlots: number;
+  expectedTimeStr: string;
+}
+
 export interface BookingConfirmation {
   appointmentId: number;
   tokenCode: string;

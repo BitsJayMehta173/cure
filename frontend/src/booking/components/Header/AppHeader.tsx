@@ -12,17 +12,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeTab, setActiveTab, l
   return (
     <div className="app-header">
       <div className="app-header-left">
-        {/* Empty space for grid balancing */}
+        <div className="logo-container">
+          <span className="logo-icon">🏥</span>
+          <span className="logo-text">MedRoute</span>
+        </div>
       </div>
-      
+
       <div className="app-header-center">
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'recommendation' ? 'active' : ''}`}
           onClick={() => setActiveTab('recommendation')}
         >
           Recommendation
         </button>
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'booking' ? 'active' : ''}`}
           onClick={() => setActiveTab('booking')}
         >
@@ -32,22 +35,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeTab, setActiveTab, l
 
       <div className="app-header-right">
         <div className="lang-toggle">
-          <button 
+          <button
             className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
             onClick={() => setLang('en')}
           >
             English
           </button>
-          <button 
+          <button
             className={`lang-btn ${lang === 'hi' ? 'active' : ''}`}
             onClick={() => setLang('hi')}
           >
             हिंदी
           </button>
-        </div>
-        <div className="logo-container">
-          <span className="logo-icon">🏥</span>
-          <span className="logo-text">MedRoute</span>
         </div>
       </div>
     </div>

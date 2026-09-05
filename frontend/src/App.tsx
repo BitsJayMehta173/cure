@@ -231,13 +231,23 @@ function App() {
     })
   }
 
+  // Switching back to the recommendation tab — refetch in case the user
+  // booked or cancelled while on the wizard tab. Keeps slot counts, token
+  // assignments, and the "available" / "almost full" badges in sync.
+  const handleTabChange = (tab: 'recommendation' | 'booking') => {
+    if (tab === 'recommendation' && hasSearched && activeTab === 'booking') {
+      fetchMatches(expansionMode === 'AI Multi-Preference');
+    }
+    setActiveTab(tab);
+  };
+
   return (
     <main className="app">
-      <AppHeader 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        lang={lang} 
-        setLang={setLang} 
+      <AppHeader
+        activeTab={activeTab}
+        setActiveTab={handleTabChange}
+        lang={lang}
+        setLang={setLang}
       />
 
       {activeTab === 'booking' ? (

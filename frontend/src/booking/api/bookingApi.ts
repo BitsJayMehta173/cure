@@ -4,6 +4,7 @@ import type {
   DepartmentSummary,
   SlotAvailability,
   TokenPreview,
+  AvailableDoctor,
   BookingConfirmation,
   AppointmentSummary
 } from '../types/booking.types';
@@ -25,6 +26,10 @@ export const bookingApi = {
     });
     if (!res.ok) throw new Error('Failed to create profile');
     return res.json();
+  },
+  deleteProfile: async (id: number): Promise<void> => {
+    const res = await fetch(`${API_BASE}/profiles/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete profile');
   },
 
   // States
@@ -49,24 +54,51 @@ export const bookingApi = {
   },
 
   // Slots
-  getSlots: async (hospitalId: number, deptId: number, month: string): Promise<SlotAvailability[]> => {
-    const res = await fetch(`${API_BASE}/slots?hospitalId=${hospitalId}&deptId=${deptId}&month=${month}`);
+  getSlots: async (hospitalId: number, deptId: number, month: string, state?: string): Promise<SlotAvailability[]> => {
+    const url = state
+      ? `${API_BASE}/slots?hospitalId=${hospitalId}&deptId=${deptId}&month=${month}&state=${encodeURIComponent(state)}`
+      : `${API_BASE}/slots?hospitalId=${hospitalId}&deptId=${deptId}&month=${month}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch slots');
     return res.json();
   },
 
   // Preview
-  getPreview: async (hospitalId: number, deptId: number, date: string): Promise<TokenPreview> => {
-    const res = await fetch(`${API_BASE}/preview?hospitalId=${hospitalId}&deptId=${deptId}&date=${date}`);
+  getPreview: async (hospitalId: number, deptId: number, date: string, state?: string): Promise<TokenPreview> => {
+    const url = state
+      ? `${API_BASE}/preview?hospitalId=${hospitalId}&deptId=${deptId}&date=${date}&state=${encodeURIComponent(state)}`
+      : `${API_BASE}/preview?hospitalId=${hospitalId}&deptId=${deptId}&date=${date}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch token preview');
     return res.json();
   },
 
+  // Available doctors for a date (used in the doctor dropdown of the confirm modal)
+  getAvailableDoctors: async (hospitalId: number, deptId: number, date: string, state?: string): Promise<AvailableDoctor[]> => {
+    const url = state
+      ? `${API_BASE}/available-doctors?hospitalId=${hospitalId}&deptId=${deptId}&date=${date}&state=${encodeURIComponent(state)}`
+      : `${API_BASE}/available-doctors?hospitalId=${hospitalId}&deptId=${deptId}&date=${date}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch available doctors');
+    return res.json();
+  },
+
   // Confirm
-  confirmBooking: async (profileId: number, hospitalId: number, deptId: number, date: string): Promise<BookingConfirmation> => {
-    const res = await fetch(`${API_BASE}/confirm?profileId=${profileId}&hospitalId=${hospitalId}&deptId=${deptId}&date=${date}`, {
-      method: 'POST'
+  confirmBooking: async (
+    profileId: number,
+    hospitalId: number,
+    deptId: number,
+    date: string,
+    doctorId?: number
+  ): Promise<BookingConfirmation> => {
+    const params = new URLSearchParams({
+      profileId: String(profileId),
+      hospitalId: String(hospitalId),
+      deptId: String(deptId),
+      date
     });
+    if (doctorId != null) params.append('doctorId', String(doctorId));
+    const res = await fetch(`${API_BASE}/confirm?${params.toString()}`, { method: 'POST' });
     if (!res.ok) throw new Error('Failed to confirm booking');
     return res.json();
   },
@@ -78,8 +110,8 @@ export const bookingApi = {
     return res.json();
   },
   
-  cancelAppointment: async (id: number): Promise<void> => {
-    const res = await fetch(`${API_BASE}/appointments/${id}`, { method: 'DELETE' });
+  cancelAppointment: async (id: number, profileId: number): Promise<void> => {
+    const res = await fetch(`${API_BASE}/appointments/${id}?profileId=${profileId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to cancel appointment');
   }
 };

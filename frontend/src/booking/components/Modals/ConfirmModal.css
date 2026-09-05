@@ -34,6 +34,51 @@
   margin-bottom: 24px;
 }
 
+.doctor-select-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.doctor-select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: white;
+  color: var(--color-text-main);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.doctor-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.doctor-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.empty-view {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.empty-view p {
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+}
+
 .doc-info {
   text-align: center;
   margin-bottom: 20px;

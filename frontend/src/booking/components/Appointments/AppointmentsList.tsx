@@ -30,7 +30,7 @@ export const AppointmentsList: React.FC<AppointmentsListProps> = ({ profileId, o
   const handleCancel = async (id: number) => {
     if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
     try {
-      await bookingApi.cancelAppointment(id);
+      await bookingApi.cancelAppointment(id, profileId);
       loadAppointments(); // reload to reflect status
     } catch (e) {
       alert('Failed to cancel appointment');

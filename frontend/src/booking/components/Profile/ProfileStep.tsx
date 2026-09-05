@@ -68,9 +68,7 @@ export const ProfileStep: React.FC<ProfileStepProps> = ({ onSelect }) => {
     e.stopPropagation();
     if (!window.confirm('Delete this profile?')) return;
     try {
-      await bookingApi.cancelAppointment(id); // Wait, this is cancel booking. We need a deleteProfile.
-      // The API has deleteProfile for /profiles/{id}, let's use standard fetch here or update bookingApi
-      await fetch(`http://localhost:8080/api/booking/profiles/${id}`, { method: 'DELETE' });
+      await bookingApi.deleteProfile(id);
       setProfiles(profiles.filter(p => p.id !== id));
     } catch (e) {
       alert('Failed to delete');

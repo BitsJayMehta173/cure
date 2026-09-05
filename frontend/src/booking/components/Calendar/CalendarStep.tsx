@@ -8,26 +8,27 @@ interface CalendarStepProps {
   hospitalId: number;
   deptId: number;
   profileId: number;
+  stateName: string;
   onBookingSuccess: () => void;
   onBack: () => void;
 }
 
-export const CalendarStep: React.FC<CalendarStepProps> = ({ hospitalId, deptId, profileId, onBookingSuccess, onBack }) => {
+export const CalendarStep: React.FC<CalendarStepProps> = ({ hospitalId, deptId, profileId, stateName, onBookingSuccess, onBack }) => {
   const [slots, setSlots] = useState<SlotAvailability[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  
+
   // Use current month for simple MVP
   const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
 
   useEffect(() => {
     loadSlots();
-  }, [hospitalId, deptId]);
+  }, [hospitalId, deptId, stateName]);
 
   const loadSlots = async () => {
     try {
-      const data = await bookingApi.getSlots(hospitalId, deptId, currentMonth);
+      const data = await bookingApi.getSlots(hospitalId, deptId, currentMonth, stateName);
       setSlots(data);
     } catch (e) {
       console.error(e);
@@ -88,10 +89,11 @@ export const CalendarStep: React.FC<CalendarStepProps> = ({ hospitalId, deptId, 
       )}
 
       {showConfirmModal && selectedDate && (
-        <ConfirmModal 
+        <ConfirmModal
           hospitalId={hospitalId}
           deptId={deptId}
           profileId={profileId}
+          stateName={stateName}
           date={selectedDate}
           onClose={() => setShowConfirmModal(false)}
           onSuccess={onBookingSuccess}
