@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { bookingApi } from './booking/api/bookingApi'
+import type { PatientProfile } from './booking/types/booking.types'
 import './App.css'
 import { HospitalColumn } from './components/HospitalColumn'
 import { Slider } from './components/Slider'
@@ -7,8 +9,11 @@ import type { Appointment, Hospital } from './types'
 import { dict, type Language } from './translations'
 import { AppHeader } from './booking/components/Header/AppHeader'
 import { BookingRoot } from './booking/BookingRoot'
+import { useAuth } from './auth/AuthContext'
+import { AuthPage } from './components/Auth/AuthPage'
 
 function App() {
+  const { user, loading: authLoading } = useAuth()
   // Phase 4 State
   const [activeTab, setActiveTab] = useState<'recommendation' | 'booking'>('recommendation')
   const [lang, setLang] = useState<Language>('en')
@@ -80,6 +85,17 @@ function App() {
   const [symptomOnset, setSymptomOnset] = useState('As soon as possible');
   const [showRematch, setShowRematch] = useState(false)
   const [patientName, setPatientName] = useState('')
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null)
+  const [modalProfiles, setModalProfiles] = useState<PatientProfile[]>([])
+
+  // Fetch profiles when booking modal opens
+  useEffect(() => {
+    if (selectedAppointment) {
+      bookingApi.getProfiles()
+        .then(profiles => setModalProfiles(profiles))
+        .catch(() => setModalProfiles([]));
+    }
+  }, [selectedAppointment]);
 
   const fetchMatches = async (isAI: boolean = false) => {
     setLoading(true);
@@ -184,9 +200,12 @@ function App() {
 
     if (!selectedAppointment) return;
     if (!patientName.trim()) {
-      window.alert('Please enter the patient name before booking.')
+      window.alert('Please select a patient before booking.')
       return;
     }
+
+    const chosenProfile = modalProfiles.find(p => p.id === selectedPatientId || p.fullName === patientName.trim());
+    const finalPatientFk = chosenProfile?.id || selectedPatientId || user?.defaultPatientId || null;
 
     try {
       const res = await fetch('http://localhost:8080/api/appointments/book', {
@@ -196,7 +215,8 @@ function App() {
           doctorId: (selectedAppointment as any).doctorId || 1,
           dateStr: selectedAppointment.date,
           patientName: patientName.trim(),
-          source: 'ReactApp'
+          source: 'RecommendationTab',
+          patientFk: finalPatientFk
         })
       });
       
@@ -206,9 +226,10 @@ function App() {
       }
 
       const confirmed = await res.json();
-      window.alert(`✅ Booking Confirmed!\nDoctor: ${selectedAppointment.name}\nToken: ${confirmed.tradeoffLabel}\nPatient: ${patientName}`);
+      window.alert(`✅ Booking Confirmed!\nDoctor: ${selectedAppointment.name}\nToken: ${confirmed.tradeoffLabel}\nPatient: ${patientName}\n\nVisible on the Follow-up / Previous appointments page!`);
       setSelectedAppointment(null);
       setPatientName('');
+      setSelectedPatientId(null);
       fetchMatches(expansionMode === 'AI Multi-Preference'); // Re-fetch to update slot counts
     } catch (e: any) {
       window.alert('❌ ' + (e.message || 'An error occurred'));
@@ -240,6 +261,9 @@ function App() {
     }
     setActiveTab(tab);
   };
+
+  if (authLoading) return <div>Loading...</div>;
+  if (!user) return <AuthPage />;
 
   return (
     <main className="app">
@@ -527,24 +551,38 @@ function App() {
               <label style={{fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '6px'}}>
                 Patient Name *
               </label>
-              <input
-                type="text"
-                value={patientName}
-                onChange={e => setPatientName(e.target.value)}
-                placeholder="Enter patient name"
+              <select
+                value={selectedPatientId !== null ? String(selectedPatientId) : ''}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (!val) {
+                    setSelectedPatientId(null);
+                    setPatientName('');
+                  } else {
+                    const pid = Number(val);
+                    setSelectedPatientId(pid);
+                    const prof = modalProfiles.find(p => p.id === pid);
+                    if (prof) setPatientName(prof.fullName);
+                  }
+                }}
                 style={{
                   width: '100%', padding: '10px 12px', borderRadius: '8px',
                   border: '1px solid var(--border-default)', background: 'var(--color-surface)',
-                  color: 'var(--color-text-main)', fontSize: '14px', boxSizing: 'border-box'
+                  color: 'var(--color-text-main)', fontSize: '14px', boxSizing: 'border-box',
+                  cursor: 'pointer'
                 }}
-                onKeyDown={e => e.key === 'Enter' && handleBooking()}
-              />
+              >
+                <option value="">-- Select a patient --</option>
+                {modalProfiles.map(p => (
+                  <option key={p.id} value={p.id}>{p.fullName} ({p.age} yrs, {p.relation})</option>
+                ))}
+              </select>
             </div>
 
             <button className="header-btn upi-btn" style={{marginTop: '20px'}} onClick={handleBooking}>
               Pay via UPI &amp; Lock Slot
             </button>
-            <button className="header-btn cancel-btn" onClick={() => { setSelectedAppointment(null); setPatientName(''); }}>
+            <button className="header-btn cancel-btn" onClick={() => { setSelectedAppointment(null); setPatientName(''); setSelectedPatientId(null); }}>
               Cancel
             </button>
           </div>

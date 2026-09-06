@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
-    password: 0880 # To be overridden by env vars in prod
+    password: root # To be overridden by env vars in prod
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

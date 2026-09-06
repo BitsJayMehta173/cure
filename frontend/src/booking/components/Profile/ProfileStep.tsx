@@ -5,9 +5,10 @@ import type { PatientProfile } from '../../types/booking.types';
 
 interface ProfileStepProps {
   onSelect: (profileId: number) => void;
+  onViewAppointments: () => void;
 }
 
-export const ProfileStep: React.FC<ProfileStepProps> = ({ onSelect }) => {
+export const ProfileStep: React.FC<ProfileStepProps> = ({ onSelect, onViewAppointments }) => {
   const [profiles, setProfiles] = useState<PatientProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -89,6 +90,15 @@ export const ProfileStep: React.FC<ProfileStepProps> = ({ onSelect }) => {
             <li>✅ Centralized medical history</li>
           </ul>
         </div>
+
+        <div className="left-follow-up-card">
+          <div className="left-follow-up-icon">📋</div>
+          <h3>Follow-up / Previous</h3>
+          <p>View your past or upcoming<br/>appointments.</p>
+          <button className="view-appointments-btn" onClick={onViewAppointments}>
+            View Appointments →
+          </button>
+        </div>
       </div>
 
       <div className="profile-right">
@@ -149,18 +159,22 @@ export const ProfileStep: React.FC<ProfileStepProps> = ({ onSelect }) => {
                 No profiles found. Create one to get started.
               </div>
             ) : (
-              profiles.map(p => (
-                <div key={p.id} className="profile-card" onClick={() => onSelect(p.id)}>
-                  <div className="profile-avatar">
-                    {p.fullName.charAt(0).toUpperCase()}
+              <>
+                {profiles.map(p => (
+                  <div key={p.id} className="profile-card" onClick={() => onSelect(p.id)}>
+                    <div className="profile-avatar">
+                      {p.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="profile-details">
+                      <h3>{p.fullName}</h3>
+                      <span className="profile-meta">{p.age} yrs • {p.gender} • {p.relation}</span>
+                    </div>
+                    <button className="delete-btn" onClick={(e) => handleDelete(e, p.id)}>🗑️</button>
                   </div>
-                  <div className="profile-details">
-                    <h3>{p.fullName}</h3>
-                    <span className="profile-meta">{p.age} yrs • {p.gender} • {p.relation}</span>
-                  </div>
-                  <button className="delete-btn" onClick={(e) => handleDelete(e, p.id)}>🗑️</button>
-                </div>
-              ))
+                ))}
+                
+
+              </>
             )}
           </div>
         )}

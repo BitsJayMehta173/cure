@@ -104,14 +104,21 @@ export const bookingApi = {
   },
 
   // Appointments
-  getAppointments: async (profileId: number): Promise<AppointmentSummary[]> => {
-    const res = await fetch(`${API_BASE}/appointments?profileId=${profileId}`);
+  getAppointments: async (profileId?: number | null): Promise<AppointmentSummary[]> => {
+    const url = (profileId && profileId > 0) ? `${API_BASE}/appointments?profileId=${profileId}` : `${API_BASE}/appointments`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch appointments');
     return res.json();
   },
   
-  cancelAppointment: async (id: number, profileId: number): Promise<void> => {
-    const res = await fetch(`${API_BASE}/appointments/${id}?profileId=${profileId}`, { method: 'DELETE' });
+  cancelAppointment: async (id: number, profileId?: number | null): Promise<void> => {
+    const url = (profileId && profileId > 0) ? `${API_BASE}/appointments/${id}?profileId=${profileId}` : `${API_BASE}/appointments/${id}`;
+    const res = await fetch(url, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to cancel appointment');
+  },
+
+  removeAppointment: async (id: number): Promise<void> => {
+    const res = await fetch(`${API_BASE}/appointments/${id}/remove`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to remove appointment');
   }
 };

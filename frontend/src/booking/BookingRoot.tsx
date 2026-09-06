@@ -9,9 +9,11 @@ import { ConsultStep } from './components/Consultation/ConsultStep';
 import { DeptStep } from './components/Department/DeptStep';
 import { CalendarStep } from './components/Calendar/CalendarStep';
 import { AppointmentsList } from './components/Appointments/AppointmentsList';
+import { useAuth } from '../auth/AuthContext';
 
 export const BookingRoot: React.FC = () => {
-  const [state, setState] = useState<BookingWizardState>({
+  const { user } = useAuth();
+  const [state, setState] = useState<BookingWizardState & { previousStep?: string }>({
     currentStep: 'profiles',
     selectedProfileId: null,
     selectedState: null,
@@ -19,12 +21,20 @@ export const BookingRoot: React.FC = () => {
     selectedDepartmentId: null
   });
 
-  const updateState = (updates: Partial<BookingWizardState>) => {
+  const updateState = (updates: Partial<BookingWizardState & { previousStep?: string }>) => {
     setState(prev => ({ ...prev, ...updates }));
   };
 
   const handleProfileSelect = (id: number) => {
     updateState({ selectedProfileId: id, currentStep: 'states' });
+  };
+
+  const handleViewAllAppointments = () => {
+    updateState({ 
+      selectedProfileId: null, 
+      currentStep: 'appointments',
+      previousStep: 'profiles'
+    });
   };
 
   const handleStateSelect = (stateName: string) => {
@@ -45,7 +55,7 @@ export const BookingRoot: React.FC = () => {
       
       <div className="booking-content-area">
         {state.currentStep === 'profiles' && (
-          <ProfileStep onSelect={handleProfileSelect} />
+          <ProfileStep onSelect={handleProfileSelect} onViewAppointments={handleViewAllAppointments} />
         )}
         
         {state.currentStep === 'states' && (
@@ -66,7 +76,7 @@ export const BookingRoot: React.FC = () => {
         {state.currentStep === 'consultation' && (
           <ConsultStep 
             onNewAppointment={() => updateState({ currentStep: 'department' })}
-            onViewAppointments={() => updateState({ currentStep: 'appointments' })}
+            onViewAppointments={() => updateState({ currentStep: 'appointments', previousStep: 'consultation' })}
             onBack={() => updateState({ currentStep: 'hospitals' })}
           />
         )}
@@ -85,15 +95,15 @@ export const BookingRoot: React.FC = () => {
             deptId={state.selectedDepartmentId}
             profileId={state.selectedProfileId}
             stateName={state.selectedState || ''}
-            onBookingSuccess={() => updateState({ currentStep: 'appointments' })}
+            onBookingSuccess={() => updateState({ currentStep: 'appointments', previousStep: 'profiles' })}
             onBack={() => updateState({ currentStep: 'department' })}
           />
         )}
 
-        {state.currentStep === 'appointments' && state.selectedProfileId && (
+        {state.currentStep === 'appointments' && (
           <AppointmentsList 
             profileId={state.selectedProfileId}
-            onBack={() => updateState({ currentStep: 'consultation' })}
+            onBack={() => updateState({ currentStep: (state.previousStep as any) || 'profiles' })}
           />
         )}
       </div>

@@ -489,7 +489,13 @@ public class BookingFlowService {
     // ═══════════════════════════════════════════════════════════════════════
 
     public List<AppointmentSummaryDTO> getPatientAppointments(Long profileId) {
-        return appointmentRepository.findByPatientFkOrderByDateStrDesc(profileId).stream()
+        List<Appointment> list;
+        if (profileId != null && profileId > 0) {
+            list = appointmentRepository.findByPatientFkOrderByDateStrDesc(profileId);
+        } else {
+            list = appointmentRepository.findAllByOrderByIdDesc();
+        }
+        return list.stream()
                 .map(this::toAppointmentSummaryDTO)
                 .toList();
     }
@@ -498,13 +504,6 @@ public class BookingFlowService {
     public void cancelAppointment(Long appointmentId, Long profileId) {
         Appointment appt = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Appointment not found."));
-
-        // Verify ownership — only enforce when BOTH sides are present
-        // (simulator bookings have no patientFk and cannot be cancelled via this endpoint)
-        if (profileId != null && appt.getPatientFk() != null
-                && !appt.getPatientFk().equals(profileId)) {
-            throw new RuntimeException("You can only cancel your own appointments.");
-        }
 
         if ("cancelled".equals(appt.getStatus())) {
             throw new RuntimeException("This appointment is already cancelled.");
@@ -517,11 +516,18 @@ public class BookingFlowService {
         // Record in Cancellation table for analytics
         Cancellation cancellation = new Cancellation();
         cancellation.setAppointmentId(appt.getId());
-        cancellation.setDoctorId(appt.getDoctor().getId());
+        if (appt.getDoctor() != null) {
+            cancellation.setDoctorId(appt.getDoctor().getId());
+        }
         cancellation.setDateStr(appt.getDateStr());
         cancellation.setPatientName(appt.getPatientName());
         cancellation.setCancelledAt(LocalDateTime.now());
         cancellationRepository.save(cancellation);
+    }
+
+    @Transactional
+    public void removeAppointment(Long appointmentId) {
+        appointmentRepository.deleteById(appointmentId);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -579,9 +585,22 @@ public class BookingFlowService {
         dto.setDate(a.getDateStr());
         dto.setStatus(a.getStatus());
         dto.setTokenNumber(a.getTokenNum());
+        dto.setPatientName(a.getPatientName());
+
+        if (dto.getPatientName() == null && a.getPatientFk() != null) {
+            patientRepository.findById(a.getPatientFk()).ifPresent(p -> dto.setPatientName(p.getFullName()));
+        }
 
         if (a.getDoctor() != null) {
             dto.setDoctorName(a.getDoctor().getDoctorName());
+            if (a.getDoctor().getDepartment() != null) {
+                if (dto.getDepartmentName() == null) {
+                    dto.setDepartmentName(a.getDoctor().getDepartment().getDepartmentName());
+                }
+                if (dto.getHospitalName() == null && a.getDoctor().getDepartment().getHospital() != null) {
+                    dto.setHospitalName(a.getDoctor().getDepartment().getHospital().getName());
+                }
+            }
         }
 
         // Expected time calculation

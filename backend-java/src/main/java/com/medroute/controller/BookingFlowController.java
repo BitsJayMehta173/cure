@@ -205,11 +205,11 @@ public class BookingFlowController {
 
     /**
      * GET /api/booking/appointments?profileId=
-     * Returns all appointments for a patient, newest first.
+     * Returns appointments for a patient (or all if profileId is omitted), newest first.
      */
     @GetMapping("/appointments")
     public ResponseEntity<List<AppointmentSummaryDTO>> getAppointments(
-            @RequestParam Long profileId) {
+            @RequestParam(required = false) Long profileId) {
         return ResponseEntity.ok(bookingService.getPatientAppointments(profileId));
     }
 
@@ -222,8 +222,21 @@ public class BookingFlowController {
             @PathVariable Long id,
             @RequestParam(required = false) Long profileId) {
         try {
-            // profileId is optional for the controller — service validates it
             bookingService.cancelAppointment(id, profileId);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    /**
+     * DELETE /api/booking/appointments/{id}/remove
+     * Permanently removes a cancelled appointment from the list.
+     */
+    @DeleteMapping("/appointments/{id}/remove")
+    public ResponseEntity<Void> removeAppointment(@PathVariable Long id) {
+        try {
+            bookingService.removeAppointment(id);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());

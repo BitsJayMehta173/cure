@@ -12,5 +12,5 @@ export const departmentUiMeta: Record<string, DepartmentUiMeta> = {
 
 export const fallbackDepartmentMeta: DepartmentUiMeta = {
   icon: '⚕️',
-  color: '#3b82f6'
+  color: '#006078'
 };

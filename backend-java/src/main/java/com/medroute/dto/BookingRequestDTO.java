@@ -13,6 +13,9 @@ public class BookingRequestDTO {
     @NotBlank
     private String source;
 
+    // Optional: links this booking to a patient profile for unified tracking
+    private Long patientFk;
+
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
     public String getDateStr() { return dateStr; }
@@ -21,4 +24,6 @@ public class BookingRequestDTO {
     public void setPatientName(String patientName) { this.patientName = patientName; }
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }
+    public Long getPatientFk() { return patientFk; }
+    public void setPatientFk(Long patientFk) { this.patientFk = patientFk; }
 }

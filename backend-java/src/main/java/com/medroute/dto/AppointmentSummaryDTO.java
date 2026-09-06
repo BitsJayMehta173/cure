@@ -9,6 +9,7 @@ public class AppointmentSummaryDTO {
     private Integer tokenNumber;
     private String expectedTimeStr;
     private String status;
+    private String patientName;
 
     public AppointmentSummaryDTO() {}
 
@@ -28,4 +29,6 @@ public class AppointmentSummaryDTO {
     public void setExpectedTimeStr(String expectedTimeStr) { this.expectedTimeStr = expectedTimeStr; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getPatientName() { return patientName; }
+    public void setPatientName(String patientName) { this.patientName = patientName; }
 }

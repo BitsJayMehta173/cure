@@ -77,6 +77,7 @@ export interface AppointmentSummary {
   tokenNumber: number;
   expectedTimeStr: string;
   status: string;
+  patientName: string;
 }
 
 export type BookingStep = 

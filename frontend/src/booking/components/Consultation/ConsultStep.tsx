@@ -26,13 +26,6 @@ export const ConsultStep: React.FC<ConsultStepProps> = ({ onNewAppointment, onVi
           <p>Book a fresh consultation with a specialist.</p>
           <button className="action-btn">Book Now →</button>
         </div>
-
-        <div className="action-card view-apt" onClick={onViewAppointments}>
-          <div className="action-icon">📋</div>
-          <h3>Follow-up / Previous</h3>
-          <p>View your past or upcoming appointments.</p>
-          <button className="action-btn">View Appointments →</button>
-        </div>
       </div>
     </div>
   );

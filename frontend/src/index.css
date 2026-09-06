@@ -1,35 +1,42 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Colors */
-  --color-bg-main: #f3f6f9; /* Soft cool gray for clinical feel */
-  --color-surface: rgba(255, 255, 255, 0.7); /* Glassmorphism surface */
+  /* Colors - SujhavSewa Brand Identity */
+  --color-bg-main: #f3f8f8; /* Fresh clinical mint-gray backdrop */
+  --color-surface: rgba(255, 255, 255, 0.78); /* Glassmorphism surface */
   --color-surface-solid: #ffffff;
   
-  --color-primary: #3b82f6; /* Modern Blue */
-  --color-primary-hover: #2563eb;
-  --color-primary-light: #eff6ff;
+  --color-primary: #006078; /* Sujhav Deep Ocean Teal */
+  --color-primary-hover: #004b5e;
+  --color-primary-light: #e6f5f8;
   
-  --color-text-main: #0f172a;
-  --color-text-muted: #64748b;
-  --color-text-light: #94a3b8;
+  --color-secondary: #00a888; /* Sewa Vibrant Emerald Mint */
+  --color-secondary-hover: #008f73;
+  --color-secondary-light: #e6f7f3;
+  
+  --color-accent: #00b08b;
+  --color-accent-subtle: #a8e0d0;
+  
+  --color-text-main: #0c1a24;
+  --color-text-muted: #546e7a;
+  --color-text-light: #8fa3ad;
   
   /* Status Colors */
-  --color-status-stable-bg: rgba(16, 185, 129, 0.15);
-  --color-status-stable-text: #059669;
+  --color-status-stable-bg: rgba(0, 168, 136, 0.15);
+  --color-status-stable-text: #008f73;
   --color-status-warning-bg: rgba(245, 158, 11, 0.15);
   --color-status-warning-text: #d97706;
   --color-status-critical-bg: rgba(239, 68, 68, 0.15);
   --color-status-critical-text: #dc2626;
 
   /* Borders & Shadows */
-  --border-light: rgba(255, 255, 255, 0.5);
-  --border-default: #e2e8f0;
+  --border-light: rgba(255, 255, 255, 0.6);
+  --border-default: #dbe7eb;
   
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 48, 60, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 48, 60, 0.06), 0 2px 4px -1px rgba(0, 48, 60, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 48, 60, 0.08), 0 4px 6px -2px rgba(0, 48, 60, 0.04);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 96, 120, 0.08);
 
   /* Utilities */
   --radius-md: 12px;
@@ -41,8 +48,9 @@
   color: var(--color-text-main);
   background: var(--color-bg-main);
   background-image: 
-    radial-gradient(at 0% 0%, hsla(210,100%,95%,1) 0, transparent 50%), 
-    radial-gradient(at 100% 100%, hsla(220,100%,95%,1) 0, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(0, 168, 136, 0.1) 0, transparent 50%), 
+    radial-gradient(at 100% 100%, rgba(0, 96, 120, 0.1) 0, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(168, 224, 208, 0.12) 0, transparent 65%);
   background-attachment: fixed;
   
   font-synthesis: none;

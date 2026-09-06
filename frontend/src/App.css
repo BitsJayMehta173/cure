@@ -6,6 +6,8 @@
 
 /* Header - Floating Glassmorphism Bar */
 .header { 
+  position: relative;
+  z-index: 10;
   display: flex; 
   justify-content: center; 
   align-items: center; 
@@ -385,12 +387,12 @@
 }
 
 .expansion-buttons button.ai-btn {
-  background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #006078 0%, #00a888 100%);
   color: white;
   border: none;
 }
 .expansion-buttons button.ai-btn:hover {
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 168, 136, 0.45);
 }
 
 /* --- PHASE 3 STYLES (Booking & Rematch) --- */
@@ -406,11 +408,12 @@
 
 .upi-btn {
   width: 100%;
-  background: #059669; /* UPI Green */
+  background: linear-gradient(135deg, #006078 0%, #00a888 100%);
   margin-bottom: 12px;
 }
 .upi-btn:hover {
-  background: #047857;
+  background: linear-gradient(135deg, #004b5e 0%, #008f73 100%);
+  box-shadow: 0 4px 14px rgba(0, 96, 120, 0.35);
 }
 
 .cancel-btn {

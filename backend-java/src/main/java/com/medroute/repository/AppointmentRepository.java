@@ -29,8 +29,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      */
     @Query("SELECT a FROM Appointment a " +
            "WHERE a.patientFk = :patientId " +
-           "ORDER BY a.dateStr DESC, a.tokenNum ASC")
+           "ORDER BY a.id DESC")
     List<Appointment> findByPatientFkOrderByDateStrDesc(@Param("patientId") Long patientId);
+
+    List<Appointment> findAllByOrderByIdDesc();
 
     /**
      * Fetch all bookings for a doctor on a date (for token preview/display).

@@ -20,6 +20,7 @@
 }
 
 .apt-card {
+  position: relative;
   background: var(--color-surface-solid);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
@@ -35,8 +36,75 @@
 }
 
 .apt-card.cancelled {
-  opacity: 0.6;
+  opacity: 0.8;
   background: var(--color-bg-main);
+  border-color: #fca5a5;
+}
+
+.apt-card.cancelled:hover {
+  opacity: 1;
+}
+
+.remove-apt-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: #ffffff;
+  color: #ef4444;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.remove-apt-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+}
+
+.apt-card.cancelled .apt-card-top {
+  padding-right: 32px;
+}
+
+.apt-filter-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  background: var(--color-surface-solid);
+  padding: 8px 18px;
+  border-radius: 30px;
+  border: 1px solid var(--border-default);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.apt-filter-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.apt-filter-select {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  outline: none;
 }
 
 .apt-card-top {
@@ -89,10 +157,20 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text-main);
-  margin-bottom: 24px;
+  margin-bottom: 8px;
   background: var(--color-bg-main);
   padding: 8px 12px;
   border-radius: 6px;
+}
+
+.patient-info-sm {
+  margin-bottom: 16px;
+  background: #e6f7f3;
+  border: 1px solid #a8e0d0;
+}
+
+.doc-info-sm:last-of-type {
+  margin-bottom: 24px;
 }
 
 .apt-meta-grid {
@@ -113,12 +191,12 @@
 }
 
 .meta-box.highlight {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: #e6f5f8;
+  border-color: #b5e4eb;
 }
 
 .meta-box.highlight .value {
-  color: #1d4ed8;
+  color: #006078;
 }
 
 .meta-box .label {

@@ -16,12 +16,14 @@
 }
 
 .action-blocks {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  justify-content: center;
   gap: 32px;
 }
 
 .action-card {
+  width: 100%;
+  max-width: 400px;
   background: var(--color-surface-solid);
   border: 2px solid transparent;
   border-radius: var(--radius-lg);
@@ -70,16 +72,16 @@
 
 /* Specific Accents */
 .new-apt {
-  border-color: #2563eb;
+  border-color: #00a888;
 }
 
 .new-apt .action-btn {
-  background: #2563eb;
+  background: linear-gradient(135deg, #006078 0%, #00a888 100%);
   color: white;
 }
 
 .new-apt:hover .action-btn {
-  background: #1d4ed8;
+  background: linear-gradient(135deg, #004b5e 0%, #008f73 100%);
 }
 
 .view-apt {

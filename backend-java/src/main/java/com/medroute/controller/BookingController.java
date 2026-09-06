@@ -34,6 +34,9 @@ public class BookingController {
     @Autowired
     private HospitalRepository hospitalRepository;
 
+    @Autowired
+    private com.medroute.repository.PatientRepository patientRepository;
+
     /**
      * Book an appointment from the recommendation system.
      * Now sets patientFk, hospitalId, departmentId, status — so the booking
@@ -63,6 +66,19 @@ public class BookingController {
         appointment.setPatientName(request.getPatientName());
         appointment.setSource(request.getSource());
         appointment.setStatus("confirmed");
+
+        // Link to patient profile if provided (enables unified appointment tracking)
+        if (request.getPatientFk() != null) {
+            appointment.setPatientFk(request.getPatientFk());
+        } else if (request.getPatientName() != null && !request.getPatientName().isBlank()) {
+            patientRepository.findFirstByFullNameIgnoreCase(request.getPatientName().trim())
+                    .ifPresent(p -> appointment.setPatientFk(p.getId()));
+        }
+
+        if ((appointment.getPatientName() == null || appointment.getPatientName().isBlank()) && appointment.getPatientFk() != null) {
+            patientRepository.findById(appointment.getPatientFk())
+                    .ifPresent(p -> appointment.setPatientName(p.getFullName()));
+        }
 
         // Denormalize hospital + department IDs for fast wizard queries
         var dept = doctor.getDepartment();
