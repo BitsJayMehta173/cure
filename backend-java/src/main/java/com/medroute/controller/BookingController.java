@@ -8,6 +8,7 @@ import com.medroute.repository.AppointmentRepository;
 import com.medroute.repository.DoctorRepository;
 import com.medroute.repository.HospitalDepartmentRepository;
 import com.medroute.repository.HospitalRepository;
+import com.medroute.service.BookingFlowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,9 @@ public class BookingController {
     @Autowired
     private com.medroute.repository.PatientRepository patientRepository;
 
+    @Autowired
+    private BookingFlowService bookingFlowService;
+
     /**
      * Book an appointment from the recommendation system.
      * Now sets patientFk, hospitalId, departmentId, status — so the booking
@@ -55,6 +59,19 @@ public class BookingController {
 
         // 3. Enforce daily limit
         if (currentBookings >= doctor.getDailyLimit()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Daily limit reached for doctor on " + request.getDateStr());
+        }
+
+        // 3a. Use MONOTONIC token assignment — never reuses cancelled token numbers.
+        // Same logic as the booking wizard's confirmBooking, so token numbers
+        // are consistent across both entry points and never decrease on cancel.
+        int dailyLimit = java.util.Optional.ofNullable(doctor.getDailyLimit()).orElse(0);
+        int assignedToken = bookingFlowService.nextAvailableToken(
+                doctor.getId(),
+                java.time.LocalDate.parse(request.getDateStr()),
+                dailyLimit);
+        if (assignedToken == 0) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Daily limit reached for doctor on " + request.getDateStr());
         }
@@ -90,10 +107,10 @@ public class BookingController {
             }
         }
 
-        // Generate unique token
+        // Generate unique token code (displayed to the user)
         String tokenCode = "TKN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         appointment.setTokenCode(tokenCode);
-        appointment.setTokenNum((int) currentBookings + 1);
+        appointment.setTokenNum(assignedToken);
 
         Appointment saved = appointmentRepository.save(appointment);
 

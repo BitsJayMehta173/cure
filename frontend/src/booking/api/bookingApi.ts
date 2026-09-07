@@ -11,15 +11,36 @@ import type {
 
 const API_BASE = 'http://localhost:8080/api/booking';
 
+/**
+ * Get the current user's ID from AuthContext (stored in localStorage).
+ * Returns null if not logged in.
+ */
+const getCurrentUserId = (): number | null => {
+  try {
+    const stored = localStorage.getItem('medroute_user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      return user.id || null;
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null;
+};
+
 export const bookingApi = {
   // Profiles
   getProfiles: async (): Promise<PatientProfile[]> => {
-    const res = await fetch(`${API_BASE}/profiles`);
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('Not logged in');
+    const res = await fetch(`${API_BASE}/profiles?userId=${userId}`);
     if (!res.ok) throw new Error('Failed to fetch profiles');
     return res.json();
   },
   createProfile: async (data: Omit<PatientProfile, 'id' | 'createdAt'>): Promise<PatientProfile> => {
-    const res = await fetch(`${API_BASE}/profiles`, {
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('Not logged in');
+    const res = await fetch(`${API_BASE}/profiles?userId=${userId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -28,7 +49,9 @@ export const bookingApi = {
     return res.json();
   },
   deleteProfile: async (id: number): Promise<void> => {
-    const res = await fetch(`${API_BASE}/profiles/${id}`, { method: 'DELETE' });
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('Not logged in');
+    const res = await fetch(`${API_BASE}/profiles/${id}?userId=${userId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete profile');
   },
 
@@ -105,15 +128,20 @@ export const bookingApi = {
 
   // Appointments
   getAppointments: async (profileId?: number | null): Promise<AppointmentSummary[]> => {
-    const url = (profileId && profileId > 0) ? `${API_BASE}/appointments?profileId=${profileId}` : `${API_BASE}/appointments`;
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('Not logged in');
+    const url = (profileId && profileId > 0)
+      ? `${API_BASE}/appointments?userId=${userId}&profileId=${profileId}`
+      : `${API_BASE}/appointments?userId=${userId}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch appointments');
     return res.json();
   },
-  
-  cancelAppointment: async (id: number, profileId?: number | null): Promise<void> => {
-    const url = (profileId && profileId > 0) ? `${API_BASE}/appointments/${id}?profileId=${profileId}` : `${API_BASE}/appointments/${id}`;
-    const res = await fetch(url, { method: 'DELETE' });
+
+  cancelAppointment: async (id: number): Promise<void> => {
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('Not logged in');
+    const res = await fetch(`${API_BASE}/appointments/${id}?userId=${userId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to cancel appointment');
   },
 

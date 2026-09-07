@@ -60,7 +60,15 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists");
         }
 
-        // 1. Auto-create a Patient profile so bookings can be linked
+        // 1. Create the user account first (to get an ID for patient isolation)
+        UserAccount account = new UserAccount();
+        account.setEmail(req.email.trim().toLowerCase());
+        account.setPasswordHash(hashPassword(req.password));
+        account.setFullName(req.fullName.trim());
+        account.setMobile(req.mobile != null ? req.mobile.trim() : "");
+        UserAccount saved = userAccountRepository.save(account);
+
+        // 2. Auto-create a Patient profile owned by this user account
         Patient patient = new Patient();
         patient.setFullName(req.fullName.trim());
         patient.setAge(25);  // default — user can update later
@@ -68,16 +76,12 @@ public class AuthController {
         patient.setBloodGroup("");
         patient.setMobile(req.mobile != null ? req.mobile.trim() : "0000000000");
         patient.setRelation("self");
+        patient.setUserAccountId(saved.getId()); // multi-tenancy: patient belongs to user
         Patient savedPatient = patientRepository.save(patient);
 
-        // 2. Create the user account
-        UserAccount account = new UserAccount();
-        account.setEmail(req.email.trim().toLowerCase());
-        account.setPasswordHash(hashPassword(req.password));
-        account.setFullName(req.fullName.trim());
-        account.setMobile(req.mobile != null ? req.mobile.trim() : "");
+        // 3. Link the user account back to the patient (default profile)
         account.setDefaultPatientId(savedPatient.getId());
-        UserAccount saved = userAccountRepository.save(account);
+        userAccountRepository.save(account);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(toUserResponse(saved));
     }

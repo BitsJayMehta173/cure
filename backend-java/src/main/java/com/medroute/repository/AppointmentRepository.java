@@ -32,6 +32,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
            "ORDER BY a.id DESC")
     List<Appointment> findByPatientFkOrderByDateStrDesc(@Param("patientId") Long patientId);
 
+    /**
+     * Fetch all appointments visible to a user (via their patient profiles), newest first.
+     * Joins through Appointment → Patient → UserAccount to enforce isolation.
+     * Used when profileId is null — returns only appointments belonging to the logged-in user.
+     */
+    @Query("SELECT a FROM Appointment a " +
+           "JOIN Patient p ON a.patientFk = p.id " +
+           "WHERE p.userAccountId = :userAccountId " +
+           "ORDER BY a.id DESC")
+    List<Appointment> findByUserAccountIdOrderByIdDesc(@Param("userAccountId") Long userAccountId);
+
     List<Appointment> findAllByOrderByIdDesc();
 
     /**
@@ -80,12 +91,21 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     long countByStatusNot(String status);
 
     /**
-     * Fetch the set of token numbers already taken by a doctor on a date.
-     * Only confirmed bookings are considered (cancelled tokens become free).
-     * Returns the token numbers in ascending order. Used by confirmBooking
-     * and the preview endpoints to assign the next available gap instead of
-     * naive `count + 1`, so cancelling token #1 doesn't cause two patients
-     * to be assigned the same token number.
+     * Fetch ALL token numbers ever assigned for this doctor+date
+     * (confirmed AND cancelled). Used for monotonic token assignment:
+     * a cancelled token number is part of the historical sequence
+     * and must never be reused or cause a decrease.
+     */
+    @Query("SELECT a.tokenNum FROM Appointment a " +
+           "WHERE a.doctor.id = :doctorId " +
+           "AND a.dateStr = :dateStr " +
+           "AND a.tokenNum IS NOT NULL " +
+           "ORDER BY a.tokenNum ASC")
+    List<Integer> findAllAssignedTokensByDoctorAndDate(@Param("doctorId") Long doctorId,
+                                                        @Param("dateStr") String dateStr);
+
+    /**
+     * Fetch only CONFIRMED token numbers (used for slot counts).
      */
     @Query("SELECT a.tokenNum FROM Appointment a " +
            "WHERE a.doctor.id = :doctorId " +

@@ -24,7 +24,6 @@ public class MedRouteApplication {
             HospitalDepartmentRepository deptRepo,
             DoctorRepository doctorRepo,
             AppointmentRepository apptRepo,
-            PatientRepository patientRepo,
             HolidayRepository holidayRepo) {
         return args -> {
             // If DB is empty, full seed. If populated, update new columns on existing doctors.
@@ -157,10 +156,8 @@ public class MedRouteApplication {
             saveDoctor(doctorRepo, d29, "Dr. Venkataraman S.", "MBBS, MD (Specialist)", 15, 16, 11200, 15);
 
             
-            System.out.println("🌿 Seeding Patient Profiles...");
-            savePatient(patientRepo, "Ramesh Patel", 45, "Male", "O+", "9876543210", "Self");
-            savePatient(patientRepo, "Sunita Devi", 38, "Female", "B+", "9988776655", "Self");
-            savePatient(patientRepo, "Amit Sharma", 12, "Male", "A+", "9123456789", "Son");
+            // Patient profiles are created at signup (via AuthController).
+            // They are NOT seeded here since every Patient must belong to a UserAccount.
 
             System.out.println("📅 Seeding Holidays...");
             // National holidays
@@ -247,14 +244,6 @@ public class MedRouteApplication {
         HospitalDepartment d = new HospitalDepartment();
         d.setHospital(hospital); d.setDepartmentName(deptName);
         return repo.save(d);
-    }
-
-    private Patient savePatient(PatientRepository repo, String name, int age, String gender,
-                               String bloodGroup, String mobile, String relation) {
-        Patient p = new Patient();
-        p.setFullName(name); p.setAge(age); p.setGender(gender);
-        p.setBloodGroup(bloodGroup); p.setMobile(mobile); p.setRelation(relation);
-        return repo.save(p);
     }
 
     private void saveHoliday(HolidayRepository repo, int year, int month, int day, String name, String state) {

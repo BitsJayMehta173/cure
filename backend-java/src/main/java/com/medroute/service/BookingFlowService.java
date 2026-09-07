@@ -40,15 +40,27 @@ public class BookingFlowService {
     // PROFILE MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
 
-    public List<PatientProfileDTO> getAllProfiles() {
-        return patientRepository.findAllByOrderByIdDesc()
+    /**
+     * Returns patient profiles owned by a specific user, newest first.
+     * Multi-tenancy: users cannot see other users' patient profiles.
+     */
+    public List<PatientProfileDTO> getAllProfiles(Long userAccountId) {
+        return patientRepository.findByUserAccountIdOrderByIdDesc(userAccountId)
                 .stream()
                 .map(this::toProfileDTO)
                 .toList();
     }
 
+    /**
+     * Creates a new patient profile owned by a specific user account.
+     * The userAccountId FK is required — patients cannot exist without a user.
+     */
     public PatientProfileDTO createProfile(String fullName, Integer age, String gender,
-                                           String bloodGroup, String mobile, String relation) {
+                                           String bloodGroup, String mobile, String relation,
+                                           Long userAccountId) {
+        if (userAccountId == null || userAccountId <= 0) {
+            throw new RuntimeException("userAccountId is required to create a patient profile.");
+        }
         Patient p = new Patient();
         p.setFullName(fullName);
         p.setAge(age);
@@ -56,12 +68,25 @@ public class BookingFlowService {
         p.setBloodGroup(bloodGroup);
         p.setMobile(mobile);
         p.setRelation(relation);
+        p.setUserAccountId(userAccountId);
         Patient saved = patientRepository.save(p);
         return toProfileDTO(saved);
     }
 
-    public void deleteProfile(Long id) {
-        patientRepository.deleteById(id);
+    /**
+     * Deletes a patient profile ONLY if it belongs to the given user.
+     * Prevents cross-user data deletion.
+     */
+    public void deleteProfile(Long id, Long userAccountId) {
+        if (userAccountId == null || userAccountId <= 0) {
+            throw new RuntimeException("userAccountId is required to delete a patient profile.");
+        }
+        Patient p = patientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Patient profile not found."));
+        if (!p.getUserAccountId().equals(userAccountId)) {
+            throw new RuntimeException("Access denied: this patient profile does not belong to you.");
+        }
+        patientRepository.delete(p);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -241,8 +266,9 @@ public class BookingFlowService {
         Doctor doctor = doctors.get(0);
         long booked = bookedCounts.getOrDefault(doctor.getId(), 0L);
         int dailyLimit = Optional.ofNullable(doctor.getDailyLimit()).orElse(0);
-        // Use gap-filling: lowest positive int not already taken (so cancelled
-        // tokens are reused instead of producing two patients with the same number).
+        // Monotonic token assignment: highest existing token + 1 (never reuses cancelled numbers).
+        // This matches confirmBooking — ensures the previewed token number always matches
+        // what the user will actually get when they confirm.
         int tokenNumber = nextAvailableToken(doctor.getId(), date, dailyLimit);
         int avgMins = Optional.ofNullable(doctor.getAvgMinutesPerPatient()).orElse(15);
 
@@ -429,9 +455,11 @@ public class BookingFlowService {
         dto.setDate(date.toString());
         dto.setStatus("confirmed");
 
-        // Expected time
+        // Expected time — uses queue position (not raw token) so the expected
+        // time moves up when earlier tokens are cancelled.
         int avgMins = Optional.ofNullable(selectedDoctor.getAvgMinutesPerPatient()).orElse(15);
-        LocalTime time = LocalTime.of(9, 0).plusMinutes((long) (selectedToken - 1) * avgMins);
+        int queuePos = computeQueuePosition(selectedDoctor.getId(), date, selectedToken);
+        LocalTime time = LocalTime.of(9, 0).plusMinutes((long) (queuePos - 1) * avgMins);
         dto.setExpectedTimeStr(formatTime(time));
 
         // Hospital and department names
@@ -457,20 +485,21 @@ public class BookingFlowService {
 
     /**
      * Monotonic token assignment — the next token is ALWAYS the highest
-     * existing confirmed token + 1. Cancelled tokens are NOT reused.
+     * token EVER assigned (including cancelled) + 1. Cancelled tokens are
+     * NOT reused; they remain part of the historical sequence so the
+     * displayed token numbers never decrease.
      *
-     * Example: taken = {1, 2, 3, 5} (token 4 was cancelled) → next = 6.
-     * This ensures token numbers only increase over time, so the user can
-     * always see progress (token 3 cancelled → next patient still gets a
-     * unique, never-reused token number).
+     * Real-world hospital analogy: even if patient #5 doesn't show up,
+     * the next patient still gets ticket #6 — slot frees, queue shortens,
+     * but ticket numbers keep increasing forever.
      *
      * Returns 0 if the doctor is at full daily capacity (max + 1 > dailyLimit).
      */
     public int nextAvailableToken(Long doctorId, LocalDate date, int dailyLimit) {
         if (dailyLimit <= 0) return 0;
-        List<Integer> taken = appointmentRepository.findTakenTokensByDoctorAndDate(
+        List<Integer> allTokens = appointmentRepository.findAllAssignedTokensByDoctorAndDate(
                 doctorId, date.toString());
-        int maxToken = taken.isEmpty() ? 0 : Collections.max(taken);
+        int maxToken = allTokens.isEmpty() ? 0 : Collections.max(allTokens);
         int candidate = maxToken + 1;
         return candidate <= dailyLimit ? candidate : 0;
     }
@@ -484,16 +513,53 @@ public class BookingFlowService {
                 doctorId, date.toString(), "cancelled");
     }
 
+    /**
+     * Compute the current QUEUE POSITION for a given (doctor, date, token) — i.e.,
+     * 1-based rank among CONFIRMED appointments on that date, ordered by tokenNum ASC.
+     *
+     * This is the number that drives expected time. When patients ahead of you cancel,
+     * your queue position drops (your expected time moves up) even though your token
+     * number stays the same.
+     *
+     * Example (monotonic tokens, queue position in brackets):
+     *   Token 1 [queue 1] — confirmed
+     *   Token 2 [queue 2] — confirmed
+     *   Token 3 [queue 3] — CANCELLED (frees slot, drops out of queue)
+     *   Token 4 [queue 3] — confirmed  (now 3rd in line, was 4th)
+     *
+     * Returns 0 if not found.
+     */
+    public int computeQueuePosition(Long doctorId, LocalDate date, int tokenNum) {
+        List<Integer> confirmedTokens = appointmentRepository.findTakenTokensByDoctorAndDate(
+                doctorId, date.toString());
+        int pos = 0;
+        for (int t : confirmedTokens) {
+            if (t > tokenNum) break; // sorted ASC, so all remaining are > tokenNum
+            pos++;
+        }
+        return pos;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // APPOINTMENT MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
 
-    public List<AppointmentSummaryDTO> getPatientAppointments(Long profileId) {
+    public List<AppointmentSummaryDTO> getPatientAppointments(Long profileId, Long userAccountId) {
         List<Appointment> list;
         if (profileId != null && profileId > 0) {
+            // profileId filter — verify ownership before returning
+            Patient patient = patientRepository.findById(profileId).orElse(null);
+            if (patient == null || !patient.getUserAccountId().equals(userAccountId)) {
+                // Not found or not owned — return empty list (no error, just empty)
+                return Collections.emptyList();
+            }
             list = appointmentRepository.findByPatientFkOrderByDateStrDesc(profileId);
+        } else if (userAccountId != null && userAccountId > 0) {
+            // No profileId — return all appointments for this user
+            list = appointmentRepository.findByUserAccountIdOrderByIdDesc(userAccountId);
         } else {
-            list = appointmentRepository.findAllByOrderByIdDesc();
+            // No user context at all — return nothing (never expose global data)
+            return Collections.emptyList();
         }
         return list.stream()
                 .map(this::toAppointmentSummaryDTO)
@@ -501,12 +567,20 @@ public class BookingFlowService {
     }
 
     @Transactional
-    public void cancelAppointment(Long appointmentId, Long profileId) {
+    public void cancelAppointment(Long appointmentId, Long userId) {
         Appointment appt = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Appointment not found."));
 
         if ("cancelled".equals(appt.getStatus())) {
             throw new RuntimeException("This appointment is already cancelled.");
+        }
+
+        // Ownership check: verify the appointment's patient belongs to the user
+        if (appt.getPatientFk() != null) {
+            Patient patient = patientRepository.findById(appt.getPatientFk()).orElse(null);
+            if (patient == null || !patient.getUserAccountId().equals(userId)) {
+                throw new RuntimeException("Access denied: this appointment does not belong to you.");
+            }
         }
 
         // Soft delete — keep the row for audit history
@@ -603,10 +677,13 @@ public class BookingFlowService {
             }
         }
 
-        // Expected time calculation
+        // Expected time calculation — uses queue position (not raw token) so the
+        // expected time moves up when earlier tokens are cancelled.
         if (a.getDoctor() != null && a.getTokenNum() != null && !"cancelled".equals(a.getStatus())) {
             int avgMins = Optional.ofNullable(a.getDoctor().getAvgMinutesPerPatient()).orElse(15);
-            LocalTime time = LocalTime.of(9, 0).plusMinutes((long) (a.getTokenNum() - 1) * avgMins);
+            int queuePos = computeQueuePosition(a.getDoctor().getId(),
+                    LocalDate.parse(a.getDateStr()), a.getTokenNum());
+            LocalTime time = LocalTime.of(9, 0).plusMinutes((long) (queuePos - 1) * avgMins);
             dto.setExpectedTimeStr(formatTime(time));
         }
 

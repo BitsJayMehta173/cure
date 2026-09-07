@@ -199,8 +199,12 @@ public class SearchController {
             }
             appt.setToken(currentToken);
 
-            // Use dynamic avgMins instead of hardcoded 15
-            String appointmentTime = calculateTime(currentToken, 9, avgMins);
+            // Use queue position (not raw token) to compute expected time.
+            // Queue position = rank among CONFIRMED tokens, so it shrinks when
+            // earlier patients cancel — matching real hospital behaviour.
+            int queuePos = bookingFlowService.computeQueuePosition(
+                    doctor.getId(), targetDate, currentToken);
+            String appointmentTime = calculateTime(queuePos, 9, avgMins);
             appt.setTime(appointmentTime);
 
             // Shift end uses dynamic avgMins

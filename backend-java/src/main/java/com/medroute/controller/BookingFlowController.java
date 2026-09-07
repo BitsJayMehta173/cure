@@ -34,39 +34,44 @@ public class BookingFlowController {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
-     * GET /api/booking/profiles
-     * Returns all patient profiles, newest first.
+     * GET /api/booking/profiles?userId=
+     * Returns patient profiles owned by a specific user, newest first.
      */
     @GetMapping("/profiles")
-    public ResponseEntity<List<PatientProfileDTO>> getProfiles() {
-        return ResponseEntity.ok(bookingService.getAllProfiles());
+    public ResponseEntity<List<PatientProfileDTO>> getProfiles(
+            @RequestParam Long userId) {
+        return ResponseEntity.ok(bookingService.getAllProfiles(userId));
     }
 
     /**
-     * POST /api/booking/profiles
-     * Creates a new patient profile.
+     * POST /api/booking/profiles?userId=
+     * Creates a new patient profile for the given user.
      * Body: { fullName, age, gender, bloodGroup, mobile, relation }
      */
     @PostMapping("/profiles")
-    public ResponseEntity<PatientProfileDTO> createProfile(@RequestBody @Valid PatientProfileRequest req) {
+    public ResponseEntity<PatientProfileDTO> createProfile(
+            @RequestParam Long userId,
+            @RequestBody @Valid PatientProfileRequest req) {
         PatientProfileDTO created = bookingService.createProfile(
                 req.fullName,
                 req.age,
                 req.gender,
                 req.bloodGroup,
                 req.mobile,
-                req.relation
+                req.relation,
+                userId
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     /**
-     * DELETE /api/booking/profiles/{id}
-     * Deletes a patient profile. Does NOT cascade — appointments remain.
+     * DELETE /api/booking/profiles/{id}?userId=
+     * Deletes a patient profile owned by the given user.
      */
     @DeleteMapping("/profiles/{id}")
-    public ResponseEntity<Void> deleteProfile(@PathVariable Long id) {
-        bookingService.deleteProfile(id);
+    public ResponseEntity<Void> deleteProfile(@PathVariable Long id,
+                                               @RequestParam Long userId) {
+        bookingService.deleteProfile(id, userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -204,25 +209,26 @@ public class BookingFlowController {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
-     * GET /api/booking/appointments?profileId=
-     * Returns appointments for a patient (or all if profileId is omitted), newest first.
+     * GET /api/booking/appointments?userId=&profileId=
+     * Returns appointments for the user (filtered by profile if provided), newest first.
      */
     @GetMapping("/appointments")
     public ResponseEntity<List<AppointmentSummaryDTO>> getAppointments(
+            @RequestParam Long userId,
             @RequestParam(required = false) Long profileId) {
-        return ResponseEntity.ok(bookingService.getPatientAppointments(profileId));
+        return ResponseEntity.ok(bookingService.getPatientAppointments(profileId, userId));
     }
 
     /**
-     * DELETE /api/booking/appointments/{id}
-     * Cancels an appointment (soft-delete).
+     * DELETE /api/booking/appointments/{id}?userId=
+     * Cancels an appointment (soft-delete). userId is required to verify ownership.
      */
     @DeleteMapping("/appointments/{id}")
     public ResponseEntity<Void> cancelAppointment(
             @PathVariable Long id,
-            @RequestParam(required = false) Long profileId) {
+            @RequestParam Long userId) {
         try {
-            bookingService.cancelAppointment(id, profileId);
+            bookingService.cancelAppointment(id, userId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());

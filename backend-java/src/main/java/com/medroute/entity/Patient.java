@@ -5,13 +5,19 @@ import java.time.LocalDateTime;
 
 /**
  * Patient profile — represents a person who can book appointments.
+ * One patient is the default profile for one UserAccount (linked at signup).
  * One patient can have many appointments (1-to-many).
+ *
+ * Multi-tenancy: each Patient belongs to exactly one UserAccount via userAccountId.
+ * The UserAccount.defaultPatientId circular reference ensures the "Follow-up view"
+ * can show a user's own appointments without a global list.
  *
  * Why a separate entity instead of just using patientName as a String?
  *   - Real names are too short for analytics and identity verification
  *   - We need a stable FK for the Appointment table
  *   - DPDP consent needs to be tied to a profile, not a free-text name
  *   - Phone number enables future SMS notifications
+ *   - Per-user isolation: patients cannot see other users' appointments
  */
 @Entity
 @Table(name = "patient")
@@ -42,6 +48,14 @@ public class Patient {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * FK to UserAccount.id — each patient belongs to exactly one user.
+     * Used for multi-tenancy: patient records are isolated per user.
+     * The linked UserAccount.defaultPatientId points back to this patient.
+     */
+    @Column(name = "user_account_id", nullable = false)
+    private Long userAccountId;
+
     public Patient() {
         this.createdAt = LocalDateTime.now();
     }
@@ -62,4 +76,6 @@ public class Patient {
     public void setRelation(String relation) { this.relation = relation; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Long getUserAccountId() { return userAccountId; }
+    public void setUserAccountId(Long userAccountId) { this.userAccountId = userAccountId; }
 }
