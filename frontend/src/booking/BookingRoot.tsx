@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './BookingRoot.css';
-import type { BookingWizardState } from './types/booking.types';
+import type { BookingWizardState, DoctorProfile } from './types/booking.types';
 import { Breadcrumb } from './components/Breadcrumb/Breadcrumb';
 import { ProfileStep } from './components/Profile/ProfileStep';
 import { StateStep } from './components/StateSelect/StateStep';
@@ -9,29 +9,85 @@ import { ConsultStep } from './components/Consultation/ConsultStep';
 import { DeptStep } from './components/Department/DeptStep';
 import { CalendarStep } from './components/Calendar/CalendarStep';
 import { AppointmentsList } from './components/Appointments/AppointmentsList';
-import { useAuth } from '../auth/AuthContext';
 
-export const BookingRoot: React.FC = () => {
-  const { user } = useAuth();
-  const [state, setState] = useState<BookingWizardState & { previousStep?: string }>({
-    currentStep: 'profiles',
-    selectedProfileId: null,
-    selectedState: null,
-    selectedHospitalId: null,
-    selectedDepartmentId: null
-  });
+/**
+ * Props for the Doctor Directory entry point.
+ * When provided, the wizard skips the hospital/department selection
+ * and jumps directly to the calendar for the given doctor.
+ */
+export interface BookingRootDoctorModeProps {
+  doctorMode?: boolean;
+  doctorInfo?: DoctorProfile;
+  /** Profile to pre-select in the follow-up appointments page after booking */
+  pendingProfileId?: number;
+}
 
-  const updateState = (updates: Partial<BookingWizardState & { previousStep?: string }>) => {
+export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
+  doctorMode = false,
+  doctorInfo,
+  pendingProfileId
+}) => {
+  // Build the initial state depending on entry mode
+  const getInitialState = (): BookingWizardState & { previousStep?: string; pendingProfileId?: number } => {
+    if (doctorMode && doctorInfo) {
+      // Doctor Directory entry — go DIRECTLY to calendar with all IDs pre-filled.
+      // Patient selection happens inline at the top of the calendar step.
+      return {
+        currentStep: 'calendar',
+        selectedProfileId: null, // picked inline in CalendarStep
+        selectedState: doctorInfo.hospitalState,
+        selectedHospitalId: doctorInfo.hospitalId,
+        selectedDepartmentId: doctorInfo.departmentId,
+        selectedDoctorId: doctorInfo.id,
+        pendingProfileId: pendingProfileId ?? undefined,
+        previousStep: undefined
+      };
+    }
+    return {
+      currentStep: 'profiles',
+      selectedProfileId: null,
+      selectedState: null,
+      selectedHospitalId: null,
+      selectedDepartmentId: null
+    };
+  };
+
+  const [state, setState] = useState<BookingWizardState & { previousStep?: string }>(
+    getInitialState()
+  );
+
+  // Re-initialize when doctor mode entry changes (different doctor clicked from directory)
+  useEffect(() => {
+    if (doctorMode && doctorInfo) {
+      setState(getInitialState());
+    }
+  }, [doctorInfo?.id]);
+
+  // After profile is selected in doctor mode, jump straight to calendar.
+  // (No longer needed in the simplified flow — we already start on 'calendar' — but
+  // kept as a safety net in case state somehow reverts to 'profiles'.)
+  useEffect(() => {
+    if (doctorMode && doctorInfo && state.currentStep === 'profiles') {
+      setState(prev => ({ ...prev, currentStep: 'calendar' }));
+    }
+  }, [state.currentStep, doctorMode, doctorInfo]);
+
+  const updateState = (updates: Partial<typeof state>) => {
     setState(prev => ({ ...prev, ...updates }));
   };
 
   const handleProfileSelect = (id: number) => {
-    updateState({ selectedProfileId: id, currentStep: 'states' });
+    if (doctorMode && doctorInfo) {
+      // In doctor mode, after selecting a profile go directly to calendar
+      updateState({ selectedProfileId: id, currentStep: 'calendar' });
+    } else {
+      updateState({ selectedProfileId: id, currentStep: 'states' });
+    }
   };
 
   const handleViewAllAppointments = () => {
-    updateState({ 
-      selectedProfileId: null, 
+    updateState({
+      selectedProfileId: null,
       currentStep: 'appointments',
       previousStep: 'profiles'
     });
@@ -49,61 +105,94 @@ export const BookingRoot: React.FC = () => {
     updateState({ selectedDepartmentId: deptId, currentStep: 'calendar' });
   };
 
+  const handleBookingSuccess = (bookedProfileId?: number) => {
+    updateState({
+      currentStep: 'appointments',
+      pendingProfileId: bookedProfileId ?? state.pendingProfileId
+    });
+  };
+
+  const handleAppointmentsBack = () => {
+    if (doctorMode && doctorInfo) {
+      // Clear the doctor booking target so App.tsx renders the Doctor Directory tab again
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('medroute:exit-doctor-mode'));
+      }
+      updateState({ currentStep: 'calendar', pendingProfileId: null });
+    } else {
+      updateState({ currentStep: (state.previousStep as any) || 'profiles' });
+    }
+  };
+
+  // Calendar's "back" button — in doctor mode we just exit the booking tab entirely
+  const handleCalendarBack = () => {
+    if (doctorMode && doctorInfo) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('medroute:exit-doctor-mode'));
+      }
+    } else {
+      updateState({ currentStep: 'department' });
+    }
+  };
+
   return (
     <div className="booking-root">
-      <Breadcrumb currentStep={state.currentStep} />
-      
+      {!doctorMode && <Breadcrumb currentStep={state.currentStep} />}
+
       <div className="booking-content-area">
         {state.currentStep === 'profiles' && (
           <ProfileStep onSelect={handleProfileSelect} onViewAppointments={handleViewAllAppointments} />
         )}
-        
-        {state.currentStep === 'states' && (
-          <StateStep 
-            onSelect={handleStateSelect} 
-            onBack={() => updateState({ currentStep: 'profiles' })} 
+
+        {!doctorMode && state.currentStep === 'states' && (
+          <StateStep
+            onSelect={handleStateSelect}
+            onBack={() => updateState({ currentStep: 'profiles' })}
           />
         )}
-        
-        {state.currentStep === 'hospitals' && state.selectedState && (
-          <HospitalStep 
-            stateName={state.selectedState} 
+
+        {!doctorMode && state.currentStep === 'hospitals' && state.selectedState && (
+          <HospitalStep
+            stateName={state.selectedState}
             onSelect={handleHospitalSelect}
             onBack={() => updateState({ currentStep: 'states' })}
           />
         )}
-        
-        {state.currentStep === 'consultation' && (
-          <ConsultStep 
+
+        {!doctorMode && state.currentStep === 'consultation' && (
+          <ConsultStep
             onNewAppointment={() => updateState({ currentStep: 'department' })}
-            onViewAppointments={() => updateState({ currentStep: 'appointments', previousStep: 'consultation' })}
             onBack={() => updateState({ currentStep: 'hospitals' })}
           />
         )}
-        
-        {state.currentStep === 'department' && state.selectedHospitalId && (
-          <DeptStep 
+
+        {!doctorMode && state.currentStep === 'department' && state.selectedHospitalId && (
+          <DeptStep
             hospitalId={state.selectedHospitalId}
             onSelect={handleDeptSelect}
             onBack={() => updateState({ currentStep: 'consultation' })}
           />
         )}
-        
-        {state.currentStep === 'calendar' && state.selectedHospitalId && state.selectedDepartmentId && state.selectedProfileId && (
+
+        {state.currentStep === 'calendar' &&
+         state.selectedHospitalId &&
+         state.selectedDepartmentId && (
           <CalendarStep
             hospitalId={state.selectedHospitalId}
             deptId={state.selectedDepartmentId}
             profileId={state.selectedProfileId}
             stateName={state.selectedState || ''}
-            onBookingSuccess={() => updateState({ currentStep: 'appointments', previousStep: 'profiles' })}
-            onBack={() => updateState({ currentStep: 'department' })}
+            doctorId={state.selectedDoctorId ?? undefined}
+            onBookingSuccess={handleBookingSuccess}
+            onBack={handleCalendarBack}
           />
         )}
 
         {state.currentStep === 'appointments' && (
-          <AppointmentsList 
+          <AppointmentsList
             profileId={state.selectedProfileId}
-            onBack={() => updateState({ currentStep: (state.previousStep as any) || 'profiles' })}
+            initialProfileId={state.pendingProfileId}
+            onBack={handleAppointmentsBack}
           />
         )}
       </div>

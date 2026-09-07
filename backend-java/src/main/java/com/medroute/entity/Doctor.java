@@ -31,6 +31,13 @@ public class Doctor {
     @Column(name = "avg_minutes_per_patient")
     private Integer avgMinutesPerPatient;
 
+    // Doctor Directory — added for the searchable doctor profile feature.
+    @Column(name = "photo_url", length = 500)
+    private String photoUrl;
+
+    @Column(name = "bio", columnDefinition = "TEXT")
+    private String bio;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public HospitalDepartment getDepartment() { return department; }
@@ -47,5 +54,9 @@ public class Doctor {
     public void setTotalPatientsTreated(Integer totalPatientsTreated) { this.totalPatientsTreated = totalPatientsTreated; }
     public Integer getAvgMinutesPerPatient() { return avgMinutesPerPatient; }
     public void setAvgMinutesPerPatient(Integer avgMinutesPerPatient) { this.avgMinutesPerPatient = avgMinutesPerPatient; }
+    public String getPhotoUrl() { return photoUrl; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
 }
 

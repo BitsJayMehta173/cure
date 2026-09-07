@@ -7,13 +7,27 @@ import { ConfirmModal } from '../Modals/ConfirmModal';
 interface CalendarStepProps {
   hospitalId: number;
   deptId: number;
-  profileId: number;
+  /**
+   * Pre-selected patient profile (used by the wizard flow).
+   * In the Doctor Directory flow, this is null — the patient is selected
+   * inside the confirm modal after the user clicks an available date.
+   */
+  profileId: number | null;
   stateName: string;
+  /**
+   * Optional — when set, the confirm modal opens in patient-select mode
+   * (the doctor is pre-selected) and skips the doctor dropdown.
+   * Used by the Doctor Directory "Book Appointment" flow.
+   */
+  doctorId?: number;
   onBookingSuccess: () => void;
   onBack: () => void;
 }
 
-export const CalendarStep: React.FC<CalendarStepProps> = ({ hospitalId, deptId, profileId, stateName, onBookingSuccess, onBack }) => {
+export const CalendarStep: React.FC<CalendarStepProps> = ({
+  hospitalId, deptId, profileId, stateName,
+  doctorId, onBookingSuccess, onBack
+}) => {
   const [slots, setSlots] = useState<SlotAvailability[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -47,7 +61,7 @@ export const CalendarStep: React.FC<CalendarStepProps> = ({ hospitalId, deptId, 
   return (
     <div className="calendar-step">
       <button className="back-link" onClick={onBack}>
-        ← Back to Departments
+        {doctorId ? '← Back to Profile' : '← Back to Departments'}
       </button>
 
       <div className="calendar-header">
@@ -63,16 +77,16 @@ export const CalendarStep: React.FC<CalendarStepProps> = ({ hospitalId, deptId, 
             const dateObj = new Date(slot.date);
             const dayNum = dateObj.getDate();
             const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-            
+
             return (
-              <div 
-                key={slot.date} 
+              <div
+                key={slot.date}
                 className={`calendar-cell status-${slot.status}`}
                 onClick={() => handleDateClick(slot)}
               >
                 <div className="cell-date">{dayNum}</div>
                 <div className="cell-day">{dayName}</div>
-                
+
                 {slot.status === 'available' && (
                   <div className="cell-meta">{slot.remainingSlots} slots</div>
                 )}
@@ -95,6 +109,8 @@ export const CalendarStep: React.FC<CalendarStepProps> = ({ hospitalId, deptId, 
           profileId={profileId}
           stateName={stateName}
           date={selectedDate}
+          mode={doctorId ? 'patient-select' : 'doctor-select'}
+          defaultDoctorId={doctorId}
           onClose={() => setShowConfirmModal(false)}
           onSuccess={onBookingSuccess}
         />

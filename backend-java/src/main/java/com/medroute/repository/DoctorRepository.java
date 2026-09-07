@@ -62,4 +62,29 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
      */
     @Query("SELECT COALESCE(SUM(d.dailyLimit), 0) FROM Doctor d")
     long sumDailyLimit();
+
+    /**
+     * Fuzzy doctor name search using PostgreSQL pg_trgm similarity().
+     * Returns doctors ordered by similarity score (best match first).
+     * Used by the Doctor Directory real-time search.
+     *
+     * Raw result columns: doctor_id, doctor_name, qualification, photo_url,
+     *                     hospital_name, hospital_id, department_name, dept_id,
+     *                     years_of_experience, total_patients_treated
+     */
+    @Query(value = """
+            SELECT d.id, d.doctor_name, d.qualification, d.photo_url,
+                   h.name AS hospital_name, h.id AS hospital_id,
+                   hd.department_name, hd.id AS dept_id,
+                   d.years_of_experience, d.total_patients_treated
+            FROM doctor d
+            JOIN hospital_department hd ON d.dept_id = hd.id
+            JOIN hospital h ON hd.hospital_id = h.id
+            WHERE similarity(d.doctor_name, :query) > 0.2
+               OR d.doctor_name ILIKE '%' || :query || '%'
+            ORDER BY similarity(d.doctor_name, :query) DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Object[]> searchDoctorsByName(@Param("query") String query,
+                                     @Param("limit") int limit);
 }

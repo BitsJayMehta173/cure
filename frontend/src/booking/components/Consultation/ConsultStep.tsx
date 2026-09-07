@@ -3,11 +3,10 @@ import './ConsultStep.css';
 
 interface ConsultStepProps {
   onNewAppointment: () => void;
-  onViewAppointments: () => void;
   onBack: () => void;
 }
 
-export const ConsultStep: React.FC<ConsultStepProps> = ({ onNewAppointment, onViewAppointments, onBack }) => {
+export const ConsultStep: React.FC<ConsultStepProps> = ({ onNewAppointment, onBack }) => {
   return (
     <div className="consult-step">
       <button className="back-link" onClick={onBack}>

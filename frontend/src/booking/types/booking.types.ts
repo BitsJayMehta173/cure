@@ -80,14 +80,16 @@ export interface AppointmentSummary {
   patientName: string;
 }
 
-export type BookingStep = 
-  | 'profiles' 
-  | 'states' 
-  | 'hospitals' 
+export type BookingStep =
+  | 'profiles'
+  | 'states'
+  | 'hospitals'
   | 'consultation'
   | 'department'
   | 'calendar'
-  | 'appointments';
+  | 'appointments'
+  | 'doctor-directory'
+  | 'doctor-profile';
 
 export interface BookingWizardState {
   currentStep: BookingStep;
@@ -95,4 +97,44 @@ export interface BookingWizardState {
   selectedState: string | null;
   selectedHospitalId: number | null;
   selectedDepartmentId: number | null;
+  // Doctor Directory extensions — pre-populated when entering the flow from a doctor profile
+  selectedDoctorId?: number | null;
+  // Set when we want the follow-up page to auto-select a patient
+  pendingProfileId?: number | null;
+}
+
+// ─── Doctor Directory types ──────────────────────────────────────────
+
+/** Compact doctor info returned by the directory search. */
+export interface DoctorSearchResult {
+  id: number;
+  name: string;
+  qualification: string;
+  photoUrl: string;
+  hospitalName: string;
+  hospitalId: number;
+  departmentName: string;
+  departmentId: number;
+  yearsOfExperience: number;
+  totalPatientsTreated: number;
+}
+
+/** Full doctor profile returned by /api/doctors/{id}. */
+export interface DoctorProfile {
+  id: number;
+  name: string;
+  qualification: string;
+  photoUrl: string;
+  bio: string;
+  hospitalName: string;
+  hospitalId: number;
+  hospitalAddress: string;
+  hospitalState: string;
+  departmentName: string;
+  departmentId: number;
+  yearsOfExperience: number;
+  totalPatientsTreated: number;
+  avgMinutesPerPatient: number;
+  dailyLimit: number;
+  hasUpcomingSlots: boolean;
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { bookingApi } from './booking/api/bookingApi'
-import type { PatientProfile } from './booking/types/booking.types'
+import type { PatientProfile, DoctorProfile } from './booking/types/booking.types'
 import './App.css'
 import { HospitalColumn } from './components/HospitalColumn'
 import { Slider } from './components/Slider'
@@ -9,13 +9,14 @@ import type { Appointment, Hospital } from './types'
 import { dict, type Language } from './translations'
 import { AppHeader } from './booking/components/Header/AppHeader'
 import { BookingRoot } from './booking/BookingRoot'
+import { DoctorDirectory } from './booking/components/DoctorDirectory/DoctorDirectory'
 import { useAuth } from './auth/AuthContext'
 import { AuthPage } from './components/Auth/AuthPage'
 
 function App() {
   const { user, loading: authLoading } = useAuth()
   // Phase 4 State
-  const [activeTab, setActiveTab] = useState<'recommendation' | 'booking'>('recommendation')
+  const [activeTab, setActiveTab] = useState<'doctors' | 'recommendation' | 'booking'>('doctors')
   const [lang, setLang] = useState<Language>('en')
   const [isOffline, setIsOffline] = useState(false)
   const t = dict[lang]
@@ -81,6 +82,9 @@ function App() {
 
   // Phase 3 State
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+
+  // Doctor Directory state — set when a user clicks "Book Appointment" from a doctor profile
+  const [doctorBookingTarget, setDoctorBookingTarget] = useState<DoctorProfile | null>(null)
   const [simulateFailure, setSimulateFailure] = useState(false) // Default OFF so real bookings work
   const [symptomOnset, setSymptomOnset] = useState('As soon as possible');
   const [showRematch, setShowRematch] = useState(false)
@@ -255,12 +259,27 @@ function App() {
   // Switching back to the recommendation tab — refetch in case the user
   // booked or cancelled while on the wizard tab. Keeps slot counts, token
   // assignments, and the "available" / "almost full" badges in sync.
-  const handleTabChange = (tab: 'recommendation' | 'booking') => {
+  const handleTabChange = (tab: 'doctors' | 'recommendation' | 'booking') => {
     if (tab === 'recommendation' && hasSearched && activeTab === 'booking') {
       fetchMatches(expansionMode === 'AI Multi-Preference');
     }
+    // Clear the doctor booking target when leaving the booking tab so the next
+    // entry starts fresh in wizard mode, not doctor-directory mode.
+    if (tab !== 'booking' && activeTab === 'booking') {
+      setDoctorBookingTarget(null);
+    }
     setActiveTab(tab);
   };
+
+  // Listen for BookingRoot asking to exit doctor mode (back button from calendar/appointments)
+  useEffect(() => {
+    const handler = () => {
+      setDoctorBookingTarget(null);
+      setActiveTab('doctors');
+    };
+    window.addEventListener('medroute:exit-doctor-mode', handler);
+    return () => window.removeEventListener('medroute:exit-doctor-mode', handler);
+  }, []);
 
   if (authLoading) return <div>Loading...</div>;
   if (!user) return <AuthPage />;
@@ -274,8 +293,18 @@ function App() {
         setLang={setLang}
       />
 
-      {activeTab === 'booking' ? (
-        <BookingRoot />
+      {activeTab === 'doctors' ? (
+        <DoctorDirectory
+          onBookAppointment={(doctor) => {
+            setDoctorBookingTarget(doctor);
+            setActiveTab('booking');
+          }}
+        />
+      ) : activeTab === 'booking' ? (
+        <BookingRoot
+          doctorMode={!!doctorBookingTarget}
+          doctorInfo={doctorBookingTarget ?? undefined}
+        />
       ) : (
         <>
       <header className="header" style={{ flexDirection: 'column' }}>

@@ -5,13 +5,19 @@ import type { AppointmentSummary, PatientProfile } from '../../types/booking.typ
 
 interface AppointmentsListProps {
   profileId?: number | null;
+  /**
+   * When set, auto-select this patient in the dropdown and filter to their appointments.
+   * Used after a Doctor Directory booking to show the booked patient's appointments.
+   */
+  initialProfileId?: number | null;
   onBack: () => void;
 }
 
-export const AppointmentsList: React.FC<AppointmentsListProps> = ({ profileId, onBack }) => {
+export const AppointmentsList: React.FC<AppointmentsListProps> = ({ profileId, initialProfileId, onBack }) => {
   const [appointments, setAppointments] = useState<AppointmentSummary[]>([]);
   const [profiles, setProfiles] = useState<PatientProfile[]>([]);
-  const [filterId, setFilterId] = useState<number | null>(profileId || null);
+  // Prefer initialProfileId (from directory booking) over profileId (from wizard state)
+  const [filterId, setFilterId] = useState<number | null>(initialProfileId ?? profileId ?? null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -82,7 +88,7 @@ export const AppointmentsList: React.FC<AppointmentsListProps> = ({ profileId, o
                 setFilterId(val);
               }}
             >
-              <option value="all">All Patients ({appointments.length})</option>
+              <option value="all">All Patients</option>
               {profiles.map(p => (
                 <option key={p.id} value={p.id}>{p.fullName} ({p.relation})</option>
               ))}

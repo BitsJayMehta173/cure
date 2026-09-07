@@ -105,6 +105,10 @@
   }
 }
 
+.calendar-patient-selector {
+  display: none; /* removed — patient selection now happens inside the confirm modal */
+}
+
 @media (max-width: 480px) {
   .calendar-grid {
     grid-template-columns: repeat(3, 1fr);

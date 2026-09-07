@@ -6,6 +6,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,11 +25,48 @@ public class MedRouteApplication {
             HospitalDepartmentRepository deptRepo,
             DoctorRepository doctorRepo,
             AppointmentRepository apptRepo,
-            HolidayRepository holidayRepo) {
+            HolidayRepository holidayRepo,
+            JdbcTemplate jdbc) {
         return args -> {
-            // If DB is empty, full seed. If populated, update new columns on existing doctors.
+            // 1. Always ensure pg_trgm is enabled and the search index exists.
+            //    These are idempotent so it's safe to run on every startup.
+            try {
+                jdbc.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm");
+                jdbc.execute("CREATE INDEX IF NOT EXISTS doctor_name_trgm_idx ON doctor USING gin (doctor_name gin_trgm_ops)");
+                System.out.println("🔍 pg_trgm extension and doctor_name index ready.");
+            } catch (Exception e) {
+                System.out.println("⚠️  Could not ensure pg_trgm index: " + e.getMessage());
+            }
+
+            // 2. If DB is empty, full seed. If populated, backfill new Doctor Directory columns
+            //    (photoUrl, bio) on existing doctors so the directory has data to display.
             if (hospitalRepo.count() > 0) {
-                System.out.println("✅ Database already seeded, skipping."); return;
+                System.out.println("✅ Database already seeded. Backfilling Doctor Directory fields on existing doctors...");
+                int updated = 0;
+                for (Doctor doc : doctorRepo.findAllWithDepartment()) {
+                    if (doc.getPhotoUrl() == null || doc.getPhotoUrl().isBlank()
+                        || doc.getBio() == null || doc.getBio().isBlank()) {
+                        String name = doc.getDoctorName();
+                        doc.setPhotoUrl("https://ui-avatars.com/api/?name="
+                                + name.replace("Dr. ", "").replace(" ", "+")
+                                + "&background=4F46E5&color=fff&size=240&font-size=0.4&bold=true");
+                        var dept = doc.getDepartment();
+                        String deptName = dept.getDepartmentName();
+                        doc.setBio(String.format(
+                            "Dr. %s is a %s specialist at %s with %d years of clinical experience. "
+                            + "Having treated over %,d patients, %s brings a patient-first approach "
+                            + "to %s care and is known for clear communication and evidence-based treatment plans.",
+                            name.replace("Dr. ", ""), deptName, dept.getHospital().getName(),
+                            doc.getYearsOfExperience() != null ? doc.getYearsOfExperience() : 0,
+                            doc.getTotalPatientsTreated() != null ? doc.getTotalPatientsTreated() : 0,
+                            name.replace("Dr. ", ""), deptName
+                        ));
+                        doctorRepo.save(doc);
+                        updated++;
+                    }
+                }
+                System.out.println("🩺 Backfilled Doctor Directory fields on " + updated + " doctors.");
+                return;
             }
 
             System.out.println("🌱 Seeding MedRoute database with realistic data...");
@@ -256,6 +294,18 @@ public class MedRouteApplication {
         Doctor d = new Doctor();
         d.setDepartment(dept); d.setDoctorName(name); d.setDailyLimit(dailyLimit);
         d.setQualification(qualification); d.setYearsOfExperience(yearsExp); d.setTotalPatientsTreated(totalPatients); d.setAvgMinutesPerPatient(avgMins);
+        // Doctor Directory fields: use ui-avatars.com for placeholder portraits,
+        // and a templated bio for display on the profile page.
+        d.setPhotoUrl("https://ui-avatars.com/api/?name=" + name.replace("Dr. ", "").replace(" ", "+")
+                + "&background=4F46E5&color=fff&size=240&font-size=0.4&bold=true");
+        String deptName = dept.getDepartmentName();
+        d.setBio(String.format(
+            "Dr. %s is a %s specialist at %s with %d years of clinical experience. "
+            + "Having treated over %,d patients, %s brings a patient-first approach "
+            + "to %s care and is known for clear communication and evidence-based treatment plans.",
+            name.replace("Dr. ", ""), deptName, dept.getHospital().getName(), yearsExp, totalPatients,
+            name.replace("Dr. ", ""), deptName
+        ));
         repo.save(d);
     }
 

@@ -6,10 +6,13 @@ import type {
   TokenPreview,
   AvailableDoctor,
   BookingConfirmation,
-  AppointmentSummary
+  AppointmentSummary,
+  DoctorSearchResult,
+  DoctorProfile
 } from '../types/booking.types';
 
 const API_BASE = 'http://localhost:8080/api/booking';
+const DOCTORS_BASE = 'http://localhost:8080/api/doctors';
 
 /**
  * Get the current user's ID from AuthContext (stored in localStorage).
@@ -148,5 +151,27 @@ export const bookingApi = {
   removeAppointment: async (id: number): Promise<void> => {
     const res = await fetch(`${API_BASE}/appointments/${id}/remove`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to remove appointment');
+  },
+
+  // ─── Doctor Directory ────────────────────────────────────────────────
+  /**
+   * Real-time fuzzy search for doctors by name.
+   * Uses PostgreSQL pg_trgm similarity — handles typos like "jay" vs "jai".
+   */
+  searchDoctors: async (query: string, limit = 10): Promise<DoctorSearchResult[]> => {
+    if (!query || query.trim().length === 0) return [];
+    const url = `${DOCTORS_BASE}/search?q=${encodeURIComponent(query.trim())}&limit=${limit}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to search doctors');
+    return res.json();
+  },
+
+  /**
+   * Fetch the full profile for a single doctor.
+   */
+  getDoctorProfile: async (doctorId: number): Promise<DoctorProfile> => {
+    const res = await fetch(`${DOCTORS_BASE}/${doctorId}`);
+    if (!res.ok) throw new Error('Failed to load doctor profile');
+    return res.json();
   }
 };
