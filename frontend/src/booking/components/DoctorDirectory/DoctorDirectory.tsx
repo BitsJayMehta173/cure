@@ -22,6 +22,20 @@ export const DoctorDirectory: React.FC<DoctorDirectoryProps> = ({ onBookAppointm
   const [error, setError] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+
+  const slideToTop = () => {
+    if (searchBarRef.current) {
+      searchBarRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const rect = searchBarRef.current.getBoundingClientRect();
+      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+      const targetY = currentScroll + rect.top - 28;
+      window.scrollTo({
+        top: Math.max(0, targetY),
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // Real-time search with 300ms debounce
   useEffect(() => {
@@ -93,52 +107,85 @@ export const DoctorDirectory: React.FC<DoctorDirectoryProps> = ({ onBookAppointm
   // ── Search view ────────────────────────────────────────────────────
   return (
     <div className="doctor-directory">
-      <div className="directory-header">
-        <h2>🩺 Doctor Directory</h2>
-        <p>Search for any doctor by name — handles typos and partial matches.</p>
-      </div>
+      {/* Glass Sphere Structure UI (Search Section Centered) */}
+      <div className="glass-sphere-wrapper">
+        {/* Ambient glow orbs behind the glass sphere for refraction */}
+        <div className="sphere-ambient-glow glow-teal"></div>
+        <div className="sphere-ambient-glow glow-mint"></div>
 
-      <div className="search-bar">
-        <span className="search-icon">🔍</span>
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Try 'Rahul', 'Jain', or 'jainn'..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoFocus
-        />
-        {query && (
-          <button className="search-clear" onClick={() => setQuery('')} aria-label="Clear">×</button>
-        )}
+        <div className="glass-sphere">
+          {/* Top specular reflection and rim lighting */}
+          <div className="glass-sphere-specular"></div>
+          <div className="glass-sphere-rim-light"></div>
+
+          {/* Sphere Center Content */}
+          <div className="glass-sphere-content">
+            <div className="sphere-badge">
+              <span className="sphere-badge-icon">🩺</span>
+              <span>Doctor Directory</span>
+            </div>
+
+            <h2 className="glass-sphere-title">Find a Doctor</h2>
+            <p className="glass-sphere-subtitle">
+              Search by name — we handle typos and partial matches.
+            </p>
+
+            <div
+              className="glass-sphere-search"
+              ref={searchBarRef}
+              onClick={slideToTop}
+            >
+              <span className="search-icon">🔍</span>
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search by doctor name..."
+                value={query}
+                onFocus={slideToTop}
+                onClick={slideToTop}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  slideToTop();
+                }}
+              />
+              {query && (
+                <button
+                  className="search-clear"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setQuery('');
+                  }}
+                  aria-label="Clear"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {error && <div className="directory-error">⚠️ {error}</div>}
 
+      {/* Directory Results Area */}
       <div className="directory-results">
         {loading ? (
           <div className="directory-status">
             <div className="spinner" /> Searching for "{query}"...
           </div>
-        ) : !hasSearched ? (
+        ) : !hasSearched ? null : results.length === 0 ? (
           <div className="directory-status empty">
-            <div className="empty-icon">👨‍⚕️</div>
-            <h3>Start typing to search</h3>
-            <p>Try names like "Rahul", "Kavita", "Jain" — even partial or misspelled.</p>
-          </div>
-        ) : results.length === 0 ? (
-          <div className="directory-status empty">
-            <div className="empty-icon">🔎</div>
-            <h3>No doctors found for "{query}"</h3>
-            <p>Try a different name, or check the spelling.</p>
+            <div className="empty-icon">😔</div>
+            <h3>No results for "{query}"</h3>
+            <p>Try a different spelling or doctor name</p>
           </div>
         ) : (
           <>
             <div className="results-count">
-              {results.length} doctor{results.length === 1 ? '' : 's'} matching "{query}"
+              {results.length} result{results.length === 1 ? '' : 's'} found
             </div>
             <div className="doctor-grid">
-              {results.map(d => (
+              {results.map((d) => (
                 <DoctorCard key={d.id} doctor={d} onClick={handleCardClick} />
               ))}
             </div>

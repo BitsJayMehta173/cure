@@ -40,9 +40,9 @@ export const DoctorProfilePage: React.FC<DoctorProfilePageProps> = ({ doctor, on
           <h1>{doctor.name}</h1>
           <p className="profile-qualification">{doctor.qualification || 'Specialist'}</p>
           <div className="profile-badges">
-            <span className="profile-badge hospital">🏥 {doctor.hospitalName}</span>
+            <span className="profile-badge hospital">{doctor.hospitalName}</span>
             <span className="profile-badge dept">{doctor.departmentName}</span>
-            <span className="profile-badge state">📍 {doctor.hospitalState}</span>
+            <span className="profile-badge state">{doctor.hospitalState}</span>
           </div>
           {doctor.hasUpcomingSlots ? (
             <div className="profile-availability available">🟢 Available — accepting new bookings</div>
