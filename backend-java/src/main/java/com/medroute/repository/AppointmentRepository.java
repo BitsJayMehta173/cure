@@ -115,4 +115,19 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
            "ORDER BY a.tokenNum ASC")
     List<Integer> findTakenTokensByDoctorAndDate(@Param("doctorId") Long doctorId,
                                                  @Param("dateStr") String dateStr);
+
+    /**
+     * Real (non-simulated) bookings — i.e. appointments linked to an actual
+     * Patient profile, excluding cancelled ones. Eager-loads doctor + department
+     * so the seeder's CommandLineRunner (no HTTP request / OSIV session) can
+     * safely read them without a LazyInitializationException.
+     *
+     * Used by the Patient Records demo-data backfill (attaches sample
+     * MedicalReport/Prescription/Notification rows to past visits).
+     */
+    @Query("SELECT a FROM Appointment a " +
+           "JOIN FETCH a.doctor d " +
+           "JOIN FETCH d.department dept " +
+           "WHERE a.patientFk IS NOT NULL AND a.status <> 'cancelled'")
+    List<Appointment> findRealBookingsWithDoctorAndDepartment();
 }

@@ -26,6 +26,9 @@ public class MedRouteApplication {
             DoctorRepository doctorRepo,
             AppointmentRepository apptRepo,
             HolidayRepository holidayRepo,
+            MedicalReportRepository reportRepo,
+            PrescriptionRepository prescriptionRepo,
+            NotificationRepository notificationRepo,
             JdbcTemplate jdbc) {
         return args -> {
             // 1. Always ensure pg_trgm is enabled and the search index exists.
@@ -66,6 +69,8 @@ public class MedRouteApplication {
                     }
                 }
                 System.out.println("🩺 Backfilled Doctor Directory fields on " + updated + " doctors.");
+
+                backfillPatientRecords(apptRepo, reportRepo, prescriptionRepo, notificationRepo);
                 return;
             }
 
@@ -307,6 +312,137 @@ public class MedRouteApplication {
             name.replace("Dr. ", ""), deptName
         ));
         repo.save(d);
+    }
+
+    // ─── Patient Records demo-data backfill ──────────────────────────────
+    // Runs on every startup (idempotent — skips appointments that already
+    // have a report). Attaches sample MedicalReport/Prescription/Notification
+    // rows to past, non-cancelled, real-patient visits so the Patient Records
+    // tab has realistic content without needing a doctor-side write feature.
+    // Future/upcoming appointments are intentionally left empty — their
+    // Reports/Medicine tabs correctly show "check back after your visit".
+    private void backfillPatientRecords(AppointmentRepository apptRepo,
+                                         MedicalReportRepository reportRepo,
+                                         PrescriptionRepository prescriptionRepo,
+                                         NotificationRepository notificationRepo) {
+        System.out.println("📋 Backfilling Patient Records (reports/medicines/notifications) on past visits...");
+        java.util.Random rng = new java.util.Random(42);
+        LocalDate today = LocalDate.now();
+        int visitsWithRecords = 0;
+
+        for (Appointment appt : apptRepo.findRealBookingsWithDoctorAndDepartment()) {
+            LocalDate visitDate;
+            try {
+                visitDate = LocalDate.parse(appt.getDateStr());
+            } catch (Exception e) {
+                continue; // malformed date guard
+            }
+            if (visitDate.isAfter(today)) continue; // future visit — no records yet
+            if (reportRepo.existsByAppointmentId(appt.getId())) continue; // already backfilled
+
+            Doctor doctor = appt.getDoctor();
+            String deptName = (doctor.getDepartment() != null) ? doctor.getDepartment().getDepartmentName() : "General Medicine";
+
+            // 1. Text report — always present for a past visit.
+            MedicalReport notes = new MedicalReport();
+            notes.setAppointmentId(appt.getId());
+            notes.setReportType("text");
+            notes.setTitle("Consultation Notes");
+            notes.setReportDate(visitDate);
+            notes.setTextContent(String.format(
+                "Patient reviewed by %s for %s. Vitals recorded within normal limits. "
+                + "Clinical history and current symptoms reviewed; treatment plan discussed with patient. "
+                + "Advised follow-up as needed based on response to prescribed treatment.",
+                doctor.getDoctorName(), deptName));
+            reportRepo.save(notes);
+
+            // 2. Occasional imaging report (~40% of visits) — placeholder image URL.
+            //    No real file-upload/storage exists in this app yet (consistent with
+            //    doctor photos, which also use an external placeholder service).
+            if (rng.nextInt(10) < 4) {
+                MedicalReport scan = new MedicalReport();
+                scan.setAppointmentId(appt.getId());
+                scan.setReportType("image");
+                scan.setTitle("Diagnostic Imaging");
+                scan.setReportDate(visitDate);
+                scan.setFileUrl("https://picsum.photos/seed/medroute-apt-" + appt.getId() + "/640/440");
+                reportRepo.save(scan);
+            }
+
+            // 3. Prescription — 2 to 4 medicines drawn from a department-flavored pool.
+            List<String[]> shuffled = new java.util.ArrayList<>(medicinePoolFor(deptName));
+            java.util.Collections.shuffle(shuffled, rng);
+            int count = Math.min(2 + rng.nextInt(3), shuffled.size()); // 2..4
+            for (int i = 0; i < count; i++) {
+                String[] med = shuffled.get(i);
+                Prescription rx = new Prescription();
+                rx.setAppointmentId(appt.getId());
+                rx.setMedicineName(med[0]);
+                rx.setDosage(med[1]);
+                rx.setFrequency(med[2]);
+                rx.setDuration(med[3]);
+                rx.setInstructions(med[4]);
+                rx.setPrescribedDate(visitDate);
+                prescriptionRepo.save(rx);
+            }
+
+            // 4. Notification — deterministic read/unread mix for a realistic badge count.
+            if (appt.getPatientFk() != null) {
+                Notification n = new Notification();
+                n.setPatientFk(appt.getPatientFk());
+                n.setAppointmentId(appt.getId());
+                n.setType("report_added");
+                n.setMessage("New consultation report from " + doctor.getDoctorName() + " is now available.");
+                n.setRead(rng.nextBoolean());
+                notificationRepo.save(n);
+            }
+
+            visitsWithRecords++;
+        }
+
+        System.out.println("📋 Attached demo reports/medicines/notifications to " + visitsWithRecords + " past visit(s).");
+    }
+
+    private List<String[]> medicinePoolFor(String departmentName) {
+        String dept = departmentName == null ? "" : departmentName.toLowerCase();
+        if (dept.contains("cardio")) {
+            return List.of(
+                new String[]{"Aspirin", "75mg", "Once daily", "30 days", "Take after breakfast"},
+                new String[]{"Atorvastatin", "10mg", "Once daily (night)", "30 days", "Take at bedtime"},
+                new String[]{"Metoprolol", "25mg", "Twice daily", "30 days", "Take with food"},
+                new String[]{"Clopidogrel", "75mg", "Once daily", "30 days", "Take after breakfast"}
+            );
+        }
+        if (dept.contains("onco")) {
+            return List.of(
+                new String[]{"Ondansetron", "4mg", "As needed (nausea)", "7 days", "Take 30 min before meals if nauseous"},
+                new String[]{"Dexamethasone", "4mg", "Once daily", "5 days", "Take in the morning with food"},
+                new String[]{"Folic Acid", "5mg", "Once daily", "30 days", "Take after any meal"},
+                new String[]{"Paracetamol", "650mg", "As needed (pain)", "7 days", "Do not exceed 3 tablets/day"}
+            );
+        }
+        if (dept.contains("neuro")) {
+            return List.of(
+                new String[]{"Levetiracetam", "500mg", "Twice daily", "30 days", "Take at consistent times daily"},
+                new String[]{"Gabapentin", "300mg", "Twice daily", "30 days", "Take with food"},
+                new String[]{"Vitamin B12", "1500mcg", "Once daily", "30 days", "Take after breakfast"},
+                new String[]{"Sodium Valproate", "200mg", "Twice daily", "30 days", "Do not stop abruptly"}
+            );
+        }
+        if (dept.contains("ortho")) {
+            return List.of(
+                new String[]{"Ibuprofen", "400mg", "Twice daily", "5 days", "Take after food"},
+                new String[]{"Calcium + Vitamin D3", "500mg", "Once daily", "30 days", "Take after breakfast"},
+                new String[]{"Diclofenac Gel", "1%", "Apply twice daily", "7 days", "Apply a thin layer, avoid broken skin"},
+                new String[]{"Paracetamol", "650mg", "As needed (pain)", "5 days", "Do not exceed 3 tablets/day"}
+            );
+        }
+        return List.of(
+            new String[]{"Paracetamol", "500mg", "As needed", "5 days", "Take after food"},
+            new String[]{"Multivitamin", "1 tablet", "Once daily", "30 days", "Take after breakfast"},
+            new String[]{"ORS Sachets", "1 sachet", "As needed", "3 days", "Dissolve in 1L clean water"},
+            new String[]{"Vitamin C", "500mg", "Once daily", "15 days", "Take after any meal"}
+        );
     }
 
     }

@@ -7,6 +7,9 @@ import java.util.Map;
 @Service
 public class OptimizationService {
 
+    @org.springframework.beans.factory.annotation.Value("${ml.api.url}")
+    private String mlApiUrl;
+
     private static final double R = 6371.0; // Earth radius in km
 
     public static final Map<String, double[]> STATE_COORDINATES = Map.of(
@@ -282,7 +285,7 @@ public class OptimizationService {
                 transportModeCode, flightViableFlag);
 
             org.springframework.http.HttpEntity<String> request = new org.springframework.http.HttpEntity<>(json, headers);
-            Double[] result = restTemplate.postForObject("http://127.0.0.1:5000/api/predict", request, Double[].class);
+            Double[] result = restTemplate.postForObject(mlApiUrl + "/api/predict", request, Double[].class);
 
             if (result != null && result.length > 0) {
                 // The PyTorch Model returns 0-100 directly.

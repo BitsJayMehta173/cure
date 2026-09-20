@@ -12,11 +12,12 @@ import { BookingRoot } from './booking/BookingRoot'
 import { DoctorDirectory } from './booking/components/DoctorDirectory/DoctorDirectory'
 import { useAuth } from './auth/AuthContext'
 import { AuthPage } from './components/Auth/AuthPage'
+import { PatientRecordsRoot } from './records/PatientRecordsRoot'
 
 function App() {
   const { user, loading: authLoading } = useAuth()
   // Phase 4 State
-  const [activeTab, setActiveTab] = useState<'doctors' | 'recommendation' | 'booking'>('doctors')
+  const [activeTab, setActiveTab] = useState<'doctors' | 'recommendation' | 'booking' | 'records'>('doctors')
   const [lang, setLang] = useState<Language>('en')
   const [isOffline, setIsOffline] = useState(false)
   const t = dict[lang]
@@ -47,7 +48,7 @@ function App() {
 
   // Load dynamic filters from database on page load
   useEffect(() => {
-    fetch('http://localhost:8080/api/search/filters')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/search/filters`)
       .then(res => res.json())
       .then(data => {
         setAvailableStates(data.states || [])
@@ -55,7 +56,7 @@ function App() {
       })
       .catch(() => console.warn('Could not load filters from backend.'))
 
-    fetch('http://localhost:8080/api/stats')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/stats`)
       .then(res => res.json())
       .then(data => {
         const statsArr = Object.entries(data).map(([label, value]) => ({ label, value: String(value) }))
@@ -103,7 +104,7 @@ function App() {
 
   const fetchMatches = async (isAI: boolean = false) => {
     setLoading(true);
-    let url = `http://localhost:8080/api/search/state?state=${location}&condition=${disease}&urgency=${urgencyScore}`;
+    let url = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/search/state?state=${location}&condition=${disease}&urgency=${urgencyScore}`;
     
     if (journeyDate) url += `&journeyDate=${journeyDate}`;
     if (journeyTime) url += `&journeyTime=${journeyTime}`;
@@ -212,7 +213,7 @@ function App() {
     const finalPatientFk = chosenProfile?.id || selectedPatientId || user?.defaultPatientId || null;
 
     try {
-      const res = await fetch('http://localhost:8080/api/appointments/book', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/appointments/book`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -259,7 +260,7 @@ function App() {
   // Switching back to the recommendation tab — refetch in case the user
   // booked or cancelled while on the wizard tab. Keeps slot counts, token
   // assignments, and the "available" / "almost full" badges in sync.
-  const handleTabChange = (tab: 'doctors' | 'recommendation' | 'booking') => {
+  const handleTabChange = (tab: 'doctors' | 'recommendation' | 'booking' | 'records') => {
     if (tab === 'recommendation' && hasSearched && activeTab === 'booking') {
       fetchMatches(expansionMode === 'AI Multi-Preference');
     }
@@ -305,6 +306,8 @@ function App() {
           doctorMode={!!doctorBookingTarget}
           doctorInfo={doctorBookingTarget ?? undefined}
         />
+      ) : activeTab === 'records' ? (
+        <PatientRecordsRoot />
       ) : (
         <>
       <header className="header" style={{ flexDirection: 'column' }}>

@@ -3,8 +3,8 @@ import { useAuth } from '../../../auth/AuthContext';
 import './AppHeader.css';
 
 interface AppHeaderProps {
-  activeTab: 'doctors' | 'recommendation' | 'booking';
-  setActiveTab: (tab: 'doctors' | 'recommendation' | 'booking') => void;
+  activeTab: 'doctors' | 'recommendation' | 'booking' | 'records';
+  setActiveTab: (tab: 'doctors' | 'recommendation' | 'booking' | 'records') => void;
   lang: 'en' | 'hi';
   setLang: (lang: 'en' | 'hi') => void;
 }
@@ -74,6 +74,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeTab, setActiveTab, l
             onClick={() => setActiveTab('booking')}
           >
             Booking (v2.0)
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'records' ? 'active' : ''}`}
+            onClick={() => setActiveTab('records')}
+          >
+            📋 Patient Records
           </button>
         </div>
 

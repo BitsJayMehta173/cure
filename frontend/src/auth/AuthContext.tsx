@@ -19,7 +19,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const API_BASE = 'http://localhost:8080/api/auth';
+const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/auth` : 'http://localhost:8080/api/auth';
 const STORAGE_KEY = 'medroute_user';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

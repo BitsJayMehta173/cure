@@ -1,0 +1,174 @@
+.date-gallery {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.back-link {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.back-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.loading-text {
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-main);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-default);
+}
+
+.directory-error {
+  width: 100%;
+  margin: 0 auto 24px;
+  padding: 12px 18px;
+  background: var(--color-status-critical-bg);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: var(--color-status-critical-text);
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-size: 14px;
+}
+
+.gallery-header {
+  margin-bottom: 32px;
+}
+
+.gallery-header h2 {
+  font-size: 26px;
+  color: var(--color-text-main);
+  margin: 0 0 4px 0;
+}
+
+.gallery-header p {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* Each date section spans the full width, like a Google Photos day divider */
+.gallery-date-section {
+  margin-bottom: 40px;
+}
+
+.gallery-date-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--border-default);
+}
+
+.gallery-date-big {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text-main);
+}
+
+.gallery-date-count {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+/* Appointments for that date wrap onto new rows once the row fills up */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.gallery-tile {
+  position: relative;
+  background: var(--color-surface-solid);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gallery-tile:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.gallery-tile.status-cancelled {
+  opacity: 0.7;
+  background: var(--color-bg-main);
+}
+
+.status-dot {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-dot-confirmed { background: #22c55e; }
+.status-dot-cancelled { background: #ef4444; }
+.status-dot-completed { background: #64748b; }
+
+.gallery-tile h4 {
+  margin: 0 20px 4px 0;
+  font-size: 15px;
+  color: var(--color-text-main);
+}
+
+.gallery-tile-dept {
+  margin: 0 0 2px 0;
+  font-size: 12px;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.gallery-tile-hospital {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.gallery-tile-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.gallery-tile-footer .status-badge {
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.gallery-tile-footer .status-confirmed { background: #dcfce7; color: #166534; }
+.gallery-tile-footer .status-cancelled { background: #fee2e2; color: #991b1b; }
+.gallery-tile-footer .status-completed { background: #e2e8f0; color: #334155; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

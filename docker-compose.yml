@@ -1,0 +1,45 @@
+﻿version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 0880
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend-ml:
+    build:
+      context: ./backend-ml
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+
+  backend-java:
+    build:
+      context: ./backend-java
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=0880
+      - ML_API_URL=http://backend-ml:5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend-ml:
+        condition: service_started
+
+volumes:
+  postgres_data:

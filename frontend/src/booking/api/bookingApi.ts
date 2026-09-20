@@ -11,8 +11,8 @@ import type {
   DoctorProfile
 } from '../types/booking.types';
 
-const API_BASE = 'http://localhost:8080/api/booking';
-const DOCTORS_BASE = 'http://localhost:8080/api/doctors';
+const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/booking` : 'http://localhost:8080/api/booking';
+const DOCTORS_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/doctors` : 'http://localhost:8080/api/doctors';
 
 /**
  * Get the current user's ID from AuthContext (stored in localStorage).

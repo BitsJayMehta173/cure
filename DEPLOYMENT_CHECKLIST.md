@@ -1,0 +1,28 @@
+﻿# MedRoute Deployment Checklist
+
+- [x] Codebase audited
+- [x] Git repository clean
+- [x] Secrets removed
+- [x] .gitignore configured
+- [x] .env.example created
+- [x] Frontend production build works
+- [x] Backend production build works
+- [x] ML service production build works
+- [x] Spring Dockerfile works
+- [x] ML Dockerfile works
+- [x] Docker Compose works
+- [x] Local PostgreSQL works
+- [x] Database migrations work
+- [x] Supabase configuration documented
+- [x] Spring health endpoint works
+- [x] ML health endpoint works
+- [x] CORS configured
+- [x] Render backend configuration prepared
+- [x] Render ML configuration prepared
+- [x] Vercel configuration prepared
+- [x] Cloudflare configuration documented
+- [x] CI pipeline works
+- [x] Security audit completed
+- [x] Production environment variables documented
+- [x] End-to-end local test passed
+- [x] Production deployment instructions written

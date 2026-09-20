@@ -1,0 +1,123 @@
+.records-chooser {
+  max-width: 720px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.loading-text {
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-main);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-default);
+}
+
+.directory-error {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto 24px;
+  padding: 12px 18px;
+  background: var(--color-status-critical-bg);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: var(--color-status-critical-text);
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-size: 14px;
+}
+
+.records-chooser-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.records-chooser-header h2 {
+  font-size: 28px;
+  color: var(--color-text-main);
+  margin: 0 0 8px 0;
+}
+
+.records-chooser-header p {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.records-patients-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.records-patient-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-solid);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.records-patient-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+/* Reuse the same circular-initial avatar look as ProfileStep */
+.records-patient-card .profile-avatar {
+  width: 48px;
+  height: 48px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: bold;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.records-patient-card .profile-details {
+  flex: 1;
+}
+
+.records-patient-card .profile-details h3 {
+  margin: 0 0 4px 0;
+  color: var(--color-text-main);
+  font-size: 16px;
+}
+
+.records-patient-card .profile-meta {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.notif-badge {
+  flex-shrink: 0;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
