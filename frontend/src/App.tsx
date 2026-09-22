@@ -654,6 +654,9 @@ function App() {
                 onSelectAppointment={setSelectedAppointment}
                 onToggleCompare={handleToggleCompare}
                 compareList={compareList}
+                patientCity={patientCity}
+                hospitalState={location}
+                urgencyScore={urgencyScore}
               />
             ))}
           </section>

@@ -36,3 +36,7 @@ export type Stat = {
   label: string
   value: string
 }
+
+// Re-export travel route types
+export type { TravelLeg, TravelPlan, CityPairRoutes } from './data/travelRoutes'
+

@@ -1,0 +1,356 @@
+/* ================================================================
+   TravelRoutePopup — glassmorphism travel itinerary popup
+   ================================================================ */
+
+.trp-popup {
+  position: fixed;
+  z-index: 9999;
+  width: 640px;
+  max-width: calc(100vw - 16px);
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  overflow: hidden;
+  animation: trp-slide-up 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  pointer-events: none;
+}
+
+@keyframes trp-slide-up {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Header (normal mode) ────────────────────────────────────── */
+.trp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px 12px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.18));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.trp-header-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+
+.trp-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.trp-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.trp-route-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+/* ── Plans grid (normal mode) ────────────────────────────────── */
+.trp-plans-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.trp-plan {
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trp-plan + .trp-plan {
+  border-left: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.trp-plan--fastest { background: rgba(59, 130, 246, 0.06); }
+.trp-plan--budget  { background: rgba(16, 185, 129, 0.06); }
+
+/* ── Plan header ─────────────────────────────────────────────── */
+.trp-plan-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trp-plan-emoji  { font-size: 16px; flex-shrink: 0; }
+.trp-plan-label  { font-size: 13px; font-weight: 800; color: #f8fafc; white-space: nowrap; }
+.trp-plan-summary {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.85);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ── Legs ────────────────────────────────────────────────────── */
+.trp-legs { display: flex; flex-direction: column; }
+
+.trp-leg { display: flex; gap: 10px; align-items: flex-start; }
+
+.trp-leg-icon-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 28px;
+}
+
+.trp-leg-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.trp-leg-line {
+  width: 2px;
+  flex: 1;
+  min-height: 10px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(148, 163, 184, 0.4) 0px,
+    rgba(148, 163, 184, 0.4) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  margin: 2px 0;
+}
+
+.trp-leg-info {
+  padding: 3px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.trp-leg-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trp-leg-route {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trp-leg-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(100, 116, 139, 0.9);
+}
+
+.trp-leg-note {
+  color: rgba(251, 191, 36, 0.9);
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* ── Cost footer ─────────────────────────────────────────────── */
+.trp-cost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(167, 243, 208, 0.9);
+  padding: 7px 10px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  margin-top: auto;
+}
+
+.trp-cost-icon { font-size: 13px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   CRITICAL MODE
+   ═══════════════════════════════════════════════════════════════ */
+
+.trp-popup--critical {
+  width: 420px;
+  background: rgba(20, 8, 8, 0.95);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(239, 68, 68, 0.2) inset,
+    0 24px 64px rgba(239, 68, 68, 0.25),
+    0 0 40px rgba(239, 68, 68, 0.15);
+  animation: trp-slide-up 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Red pulsing banner */
+.trp-critical-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(185, 28, 28, 0.25));
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.trp-critical-pulse {
+  font-size: 22px;
+  animation: trp-pulse 1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes trp-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(1.15); opacity: 0.8; }
+}
+
+.trp-critical-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.trp-critical-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  color: #fca5a5;
+  text-transform: uppercase;
+}
+
+.trp-critical-subtitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.trp-critical-time {
+  font-size: 18px;
+  font-weight: 900;
+  color: #fca5a5;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Warning strip */
+.trp-critical-warning {
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.1);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.15);
+  line-height: 1.5;
+}
+
+/* Critical plan card */
+.trp-critical-plan-wrap {
+  padding: 0 4px;
+}
+
+.trp-plan--critical {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.trp-plan--critical .trp-plan-label {
+  color: #fca5a5;
+}
+
+.trp-plan--critical .trp-leg-icon {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.trp-plan--critical .trp-leg-line {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(239, 68, 68, 0.5) 0px,
+    rgba(239, 68, 68, 0.5) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+/* Critical cost override */
+.trp-cost--critical {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+/* Action chips */
+.trp-critical-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  flex-wrap: wrap;
+}
+
+.trp-action-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  white-space: nowrap;
+}
+
+/* ── No-city state ───────────────────────────────────────────── */
+.trp-popup--no-city {
+  width: 300px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.trp-no-city-icon { font-size: 32px; }
+
+.trp-no-city-text {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.9);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.trp-no-city-text strong { color: #f1f5f9; }
+.trp-no-city-text em { color: rgba(96, 165, 250, 0.9); font-style: normal; font-weight: 600; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 660px) {
+  .trp-popup { width: calc(100vw - 16px); }
+  .trp-plans-grid { grid-template-columns: 1fr; }
+  .trp-plan + .trp-plan { border-left: none; border-top: 1px solid rgba(255,255,255,0.07); }
+  .trp-popup--critical { width: calc(100vw - 16px); }
+}
