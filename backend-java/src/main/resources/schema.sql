@@ -6,7 +6,8 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- 2. Add Doctor Directory columns to the doctor table
-ALTER TABLE doctor ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500);
+ALTER TABLE doctor ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE doctor ALTER COLUMN photo_url TYPE TEXT;
 ALTER TABLE doctor ADD COLUMN IF NOT EXISTS bio TEXT;
 
 -- 3. Create a GIN trigram index on doctor_name for fast fuzzy search.

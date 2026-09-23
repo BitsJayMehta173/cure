@@ -63,6 +63,13 @@ public class Appointment {
      */
     @Column(nullable = false)
     private String status = "confirmed";
+
+    /**
+     * Doctor's free-form general advice for this appointment.
+     * Can be set/updated by the doctor from the Doctor Portal.
+     */
+    @Column(name = "general_advice", columnDefinition = "TEXT")
+    private String generalAdvice;
     // ─────────────────────────────────────────────────────────────────────────
 
     public Long getId() { return id; }
@@ -87,4 +94,6 @@ public class Appointment {
     public void setDepartmentId(Long departmentId) { this.departmentId = departmentId; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getGeneralAdvice() { return generalAdvice; }
+    public void setGeneralAdvice(String generalAdvice) { this.generalAdvice = generalAdvice; }
 }

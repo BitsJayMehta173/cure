@@ -49,4 +49,36 @@ public class DoctorController {
         }
         return ResponseEntity.ok(profile);
     }
+
+    /**
+     * PUT /api/doctors/{id}
+     * Updates doctor profile details (name, qualification, bio, photoUrl, experience, capacity, etc.).
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<DoctorProfileDTO> updateDoctorProfile(
+            @PathVariable Long id,
+            @RequestBody com.medroute.dto.DoctorProfileUpdateRequest req) {
+        DoctorProfileDTO updated = doctorService.updateDoctorProfile(id, req);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * DELETE /api/doctors/{id}
+     * Clears/resets customizable doctor profile fields.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<DoctorProfileDTO> resetDoctorProfile(@PathVariable Long id) {
+        DoctorProfileDTO reset = doctorService.deleteOrResetDoctorProfile(id);
+        return ResponseEntity.ok(reset);
+    }
+
+    /**
+     * GET /api/doctors/list
+     * Returns all doctors with basic info for doctor onboarding/claiming.
+     */
+    @GetMapping("/list")
+    public ResponseEntity<List<DoctorSearchResultDTO>> getAllDoctors() {
+        List<DoctorSearchResultDTO> results = doctorService.getAllDoctorsBasic();
+        return ResponseEntity.ok(results);
+    }
 }

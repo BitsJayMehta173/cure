@@ -1,0 +1,672 @@
+/* ─── Doctor Dashboard — Full Redesign ─────────────────────────── */
+
+.doctor-dashboard-container {
+  min-height: 100vh;
+  background: var(--color-bg, #f0f4f8);
+  color: var(--color-text-main, #1c2a38);
+}
+
+/* ─── Nav Bar ──────────────────────────────────────────────────── */
+
+.doctor-nav-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  padding: 0 28px;
+  height: 60px;
+  background: #fff;
+  border-bottom: 1px solid #e3ebf0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.doctor-brand { display: flex; align-items: center; gap: 12px; }
+.doctor-brand-logo { height: 34px; }
+.doctor-portal-pill {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; background: rgba(0,96,120,0.1);
+  color: #006078; padding: 4px 10px; border-radius: 20px;
+}
+
+/* ─── Center Nav Tabs ──────────────────────────────────────────── */
+.dd-nav-tabs {
+  display: flex; justify-content: center; gap: 4px;
+  align-items: center; height: 100%;
+}
+.dd-nav-tab {
+  padding: 8px 20px; border: none;
+  background: transparent; border-radius: 8px;
+  font-size: 14px; font-weight: 600;
+  color: #5d7285; cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  display: flex; align-items: center; gap: 6px;
+}
+.dd-nav-tab:hover { color: #006078; background: rgba(0,96,120,0.06); }
+.dd-nav-tab.active {
+  color: #006078;
+  border-bottom-color: #006078;
+  background: rgba(0,96,120,0.06);
+  font-weight: 700;
+}
+
+/* ─── Profile Avatar Dropdown ──────────────────────────────────── */
+.dd-profile-menu-wrap { position: relative; display: flex; justify-content: flex-end; }
+
+.dd-profile-avatar-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: none; border: 1px solid #e3ebf0;
+  border-radius: 24px; padding: 5px 12px 5px 5px;
+  cursor: pointer; transition: all 0.2s;
+}
+.dd-profile-avatar-btn:hover { border-color: #006078; background: rgba(0,96,120,0.04); }
+
+.dd-profile-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #006078 0%, #008779 100%);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; font-size: 13px; font-weight: 700; color: #fff;
+}
+.dd-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.dd-profile-avatar-name { font-size: 13px; font-weight: 700; color: #1c2a38; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-profile-avatar-caret { font-size: 9px; color: #5d7285; }
+
+.dd-profile-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  width: 240px; background: #fff;
+  border: 1px solid #e3ebf0; border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  z-index: 200; overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+.dd-profile-dropdown-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #006078 0%, #008779 100%);
+}
+.dd-profile-dropdown-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.25);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; font-size: 16px; font-weight: 700; color: #fff;
+}
+.dd-profile-dropdown-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.dd-dropdown-name { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+.dd-dropdown-role { font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.3; }
+.dd-profile-dropdown-divider { height: 1px; background: #e3ebf0; }
+.dd-dropdown-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 13px 18px;
+  border: none; background: none;
+  font-size: 14px; font-weight: 600; color: #1c2a38;
+  cursor: pointer; transition: background 0.15s;
+  text-align: left;
+}
+.dd-dropdown-item:hover { background: #f0f7fa; }
+.dd-dropdown-item.danger { color: #dc3545; }
+.dd-dropdown-item.danger:hover { background: rgba(220,53,69,0.06); }
+
+/* ─── Save Banner ────────────────────────────────────────────────── */
+.dd-save-banner {
+  background: #e6f8ee; border-bottom: 1px solid #a3e6be;
+  color: #147a44; padding: 12px 32px;
+  font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ─── Hero Strip ─────────────────────────────────────────────────── */
+.dd-hero-strip {
+  background: #fff; border-bottom: 1px solid #e3ebf0;
+  padding: 20px 32px;
+  display: flex; align-items: center; gap: 20px;
+  flex-wrap: wrap;
+}
+
+.dd-hero-photo {
+  width: 72px; height: 72px; border-radius: 16px; flex-shrink: 0;
+  background: linear-gradient(135deg, #006078 0%, #008779 100%);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  font-size: 26px; font-weight: 700; color: #fff; letter-spacing: 1px;
+}
+.dd-hero-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+.dd-hero-info { flex: 1; min-width: 200px; }
+.dd-hero-name { margin: 0 0 2px; font-size: 20px; font-weight: 700; color: #1c2a38; }
+.dd-hero-qual { margin: 0 0 8px; font-size: 13px; color: #5d7285; }
+.dd-hero-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+.dd-badge {
+  font-size: 11px; padding: 3px 9px;
+  border-radius: 20px; font-weight: 600;
+}
+.dd-badge.hospital { background: rgba(0,96,120,0.1); color: #006078; }
+.dd-badge.dept { background: rgba(0,135,121,0.1); color: #008779; }
+.dd-badge.state { background: rgba(245,158,11,0.12); color: #b45309; }
+.dd-hero-avail { font-size: 12px; font-weight: 600; }
+.dd-hero-avail.avail { color: #008779; }
+.dd-hero-avail.unavail { color: #b45309; }
+
+.dd-hero-stats { display: flex; gap: 12px; flex-shrink: 0; }
+.dd-mini-stat {
+  background: #f0f7fa; border: 1px solid #d1e8ef;
+  border-radius: 10px; padding: 10px 14px;
+  text-align: center; min-width: 70px;
+}
+.dd-mini-stat .n { display: block; font-size: 18px; font-weight: 800; color: #006078; }
+.dd-mini-stat .l { display: block; font-size: 10px; color: #5d7285; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+
+/* ─── Main Content ───────────────────────────────────────────────── */
+.dd-main-content {
+  max-width: 1000px; margin: 0 auto; padding: 24px 24px 60px;
+}
+
+.dd-tab-content { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── Search Bar ─────────────────────────────────────────────────── */
+.dd-search-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid #d1e8ef;
+  border-radius: 12px; padding: 12px 16px;
+  margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.dd-search-bar:focus-within { border-color: #006078; box-shadow: 0 0 0 3px rgba(0,96,120,0.12); }
+.dd-search-icon { font-size: 18px; flex-shrink: 0; }
+.dd-search-input {
+  flex: 1; border: none; outline: none; font-size: 14px;
+  color: #1c2a38; background: transparent; font-family: inherit;
+}
+.dd-search-input::placeholder { color: #aab8c2; }
+.dd-search-clear {
+  background: none; border: none; color: #aab8c2; font-size: 15px;
+  cursor: pointer; padding: 2px 6px; border-radius: 50%;
+  transition: all 0.2s;
+}
+.dd-search-clear:hover { background: #f0f4f8; color: #5d7285; }
+
+/* ─── Patient Grid ───────────────────────────────────────────────── */
+.dd-patient-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px;
+}
+.dd-patient-card {
+  background: #fff; border: 1px solid #e3ebf0; border-radius: 14px;
+  padding: 16px; display: flex; gap: 14px; align-items: flex-start;
+  cursor: default; transition: all 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.dd-patient-card:hover { border-color: #006078; box-shadow: 0 4px 16px rgba(0,96,120,0.12); transform: translateY(-2px); }
+.dd-patient-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #006078 0%, #008779 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 18px; font-weight: 700;
+}
+.dd-patient-name { font-size: 15px; font-weight: 700; color: #1c2a38; margin-bottom: 3px; }
+.dd-patient-meta { font-size: 12px; color: #5d7285; display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+.dd-blood-group { font-weight: 700; color: #dc3545; }
+.dd-patient-mobile { font-size: 12px; color: #5d7285; }
+.dd-patient-last-visit { font-size: 12px; color: #5d7285; margin-top: 5px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* ─── Appointment Status Badges ──────────────────────────────────── */
+.dd-apt-status, .dd-status-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 9px;
+  border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.dd-apt-status.confirmed, .dd-status-badge.confirmed { background: rgba(0,135,121,0.12); color: #008779; }
+.dd-apt-status.cancelled, .dd-status-badge.cancelled { background: rgba(220,53,69,0.1); color: #dc3545; }
+.dd-apt-status.completed, .dd-status-badge.completed { background: rgba(0,96,120,0.1); color: #006078; }
+
+/* ─── Date Filter ────────────────────────────────────────────────── */
+.dd-date-filter {
+  background: #fff; border: 1px solid #e3ebf0; border-radius: 12px;
+  padding: 16px 20px; margin-bottom: 16px; display: flex;
+  gap: 16px; align-items: center; flex-wrap: wrap;
+}
+.dd-date-filter-left { display: flex; flex-direction: column; gap: 4px; }
+.dd-date-filter-left label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #5d7285; }
+.dd-date-input {
+  border: 1px solid #d1e8ef; border-radius: 8px; padding: 8px 12px;
+  font-size: 14px; color: #1c2a38; background: #f8fbfd;
+  font-family: inherit; outline: none; cursor: pointer;
+}
+.dd-date-input:focus { border-color: #006078; box-shadow: 0 0 0 2px rgba(0,96,120,0.12); }
+.dd-date-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.dd-date-chip {
+  padding: 6px 14px; border: 1px solid #d1e8ef;
+  border-radius: 20px; font-size: 12px; font-weight: 600; background: #f8fbfd;
+  color: #5d7285; cursor: pointer; transition: all 0.2s;
+}
+.dd-date-chip.active { background: #006078; color: #fff; border-color: #006078; }
+.dd-date-chip:hover:not(.active) { border-color: #006078; color: #006078; }
+
+.dd-apt-summary { font-size: 13px; color: #5d7285; margin-bottom: 12px; }
+
+/* ─── Appointment List ───────────────────────────────────────────── */
+.dd-apt-list { display: flex; flex-direction: column; gap: 10px; }
+.dd-apt-card {
+  background: #fff; border: 1px solid #e3ebf0; border-radius: 12px;
+  padding: 14px 18px; display: flex; align-items: center; gap: 16px;
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.dd-apt-card:hover { border-color: #006078; box-shadow: 0 4px 16px rgba(0,96,120,0.12); transform: translateX(3px); }
+.dd-apt-token { display: flex; flex-direction: column; align-items: center; min-width: 56px; }
+.dd-token-num { font-size: 20px; font-weight: 800; color: #006078; }
+.dd-token-time { font-size: 11px; color: #5d7285; font-weight: 600; }
+.dd-apt-info { flex: 1; }
+.dd-apt-patient-name { font-size: 15px; font-weight: 700; color: #1c2a38; margin-bottom: 2px; }
+.dd-apt-meta { font-size: 12px; color: #5d7285; display: flex; gap: 5px; }
+.dd-apt-right { display: flex; align-items: center; gap: 10px; }
+.dd-apt-arrow { font-size: 20px; color: #c8d9e2; font-weight: 300; }
+
+/* ─── Empty & Loading States ─────────────────────────────────────── */
+.dd-loading { text-align: center; color: #5d7285; padding: 40px; font-size: 15px; }
+.dd-empty-state { text-align: center; padding: 50px 24px; color: #5d7285; }
+.dd-empty-icon { font-size: 48px; margin-bottom: 12px; }
+.dd-empty-state h3 { margin: 0 0 6px; font-size: 17px; color: #1c2a38; }
+.dd-empty-state p { margin: 0; font-size: 13px; }
+
+/* ─── Appointment Detail ─────────────────────────────────────────── */
+.dd-apt-detail { animation: fadeIn 0.3s ease; }
+.dd-back-btn {
+  background: none; border: none; color: #5d7285;
+  font-size: 14px; cursor: pointer; padding: 0 0 16px;
+  display: block; font-weight: 600;
+}
+.dd-back-btn:hover { color: #006078; }
+
+.dd-apt-detail-layout {
+  display: grid; grid-template-columns: 200px 1fr; gap: 20px;
+}
+.dd-apt-detail-nav {
+  display: flex; flex-direction: column; gap: 6px;
+  background: #fff; border: 1px solid #e3ebf0;
+  border-radius: 14px; padding: 10px; align-self: start;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.dd-apt-nav-btn {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 12px 14px;
+  border: none; background: transparent;
+  border-radius: 10px; font-size: 14px; font-weight: 600;
+  color: #5d7285; cursor: pointer; text-align: left; transition: all 0.2s;
+}
+.dd-apt-nav-btn:hover { background: #f0f7fa; color: #1c2a38; }
+.dd-apt-nav-btn.active {
+  background: linear-gradient(135deg, #006078 0%, #008779 100%);
+  color: #fff; box-shadow: 0 2px 10px rgba(0,96,120,0.25);
+}
+.dd-apt-detail-content {
+  background: #fff; border: 1px solid #e3ebf0;
+  border-radius: 14px; padding: 28px; min-height: 360px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+/* ─── Status Panel ───────────────────────────────────────────────── */
+.dd-status-panel-top {
+  display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;
+}
+.dd-status-panel-top h3 { margin: 0 0 4px; font-size: 18px; color: #1c2a38; }
+.dd-status-dept { margin: 0; font-size: 13px; color: #5d7285; }
+.dd-status-stepper { display: flex; align-items: center; margin-bottom: 24px; }
+.dd-status-step { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 80px; }
+.dd-status-dot { width: 16px; height: 16px; border-radius: 50%; background: #d1e8ef; }
+.dd-status-step.done .dd-status-dot { background: #008779; }
+.dd-status-label { font-size: 12px; font-weight: 600; color: #aab8c2; }
+.dd-status-step.done .dd-status-label { color: #1c2a38; }
+.dd-status-line { flex: 1; height: 3px; background: #d1e8ef; margin: 0 4px 24px; }
+.dd-status-line.done { background: #008779; }
+.dd-cancelled-note { padding: 14px; background: #fee2e2; color: #991b1b; border-radius: 10px; font-size: 14px; font-weight: 600; margin-bottom: 20px; }
+.dd-status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.dd-status-box {
+  background: #f0f7fa; border: 1px solid #d1e8ef; padding: 14px;
+  border-radius: 10px; display: flex; flex-direction: column; gap: 4px;
+}
+.dd-status-box.highlight { background: #e6f5f8; border-color: #b5e4eb; }
+.dd-status-box .label { font-size: 11px; text-transform: uppercase; color: #5d7285; font-weight: 700; }
+.dd-status-box .value { font-size: 16px; font-weight: 800; color: #1c2a38; }
+.dd-status-patient-info { margin-top: 20px; }
+.dd-status-patient-info h4 { margin: 0 0 12px; font-size: 14px; color: #5d7285; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ─── Medicine / Prescriptions ───────────────────────────────────── */
+.dd-medicine-list { display: flex; flex-direction: column; gap: 14px; }
+.dd-medicine-card {
+  background: #f0f7fa; border: 1px solid #d1e8ef;
+  border-radius: 10px; padding: 16px 18px;
+}
+.dd-medicine-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.dd-medicine-top h4 { margin: 0; font-size: 15px; color: #1c2a38; }
+.dd-dosage { font-size: 13px; font-weight: 700; color: #006078; }
+.dd-medicine-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.dd-meta-box {
+  background: #fff; border: 1px solid #d1e8ef; padding: 8px 12px;
+  border-radius: 8px; display: flex; flex-direction: column; gap: 3px;
+}
+.dd-meta-box .label { font-size: 11px; text-transform: uppercase; color: #5d7285; font-weight: 700; }
+.dd-meta-box .value { font-size: 14px; font-weight: 700; color: #1c2a38; }
+.dd-medicine-note { margin: 6px 0 0; font-size: 13px; color: #5d7285; }
+
+/* ─── General Advice Panel ───────────────────────────────────────── */
+.dd-advice-panel h3 { margin: 0 0 6px; font-size: 17px; color: #1c2a38; }
+.dd-advice-subtitle { margin: 0 0 16px; font-size: 13px; color: #5d7285; }
+.dd-advice-textarea {
+  width: 100%; border: 1px solid #d1e8ef; border-radius: 10px;
+  padding: 14px; font-size: 14px; line-height: 1.65;
+  color: #1c2a38; font-family: inherit; resize: vertical;
+  box-sizing: border-box; transition: border-color 0.2s;
+}
+.dd-advice-textarea:focus { outline: none; border-color: #006078; box-shadow: 0 0 0 3px rgba(0,96,120,0.12); }
+.dd-advice-actions { display: flex; align-items: center; gap: 14px; margin-top: 14px; justify-content: flex-end; }
+.dd-advice-saved { color: #008779; font-size: 13px; font-weight: 700; }
+
+/* ─── Edit / View Profile Panel ─────────────────────────────────── */
+.dd-edit-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+  z-index: 200; display: flex; justify-content: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+.dd-edit-panel {
+  width: 580px; max-width: 95vw;
+  background: #fff; height: 100vh;
+  display: flex; flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.15);
+  animation: slideInRight 0.3s ease;
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); } to { transform: translateX(0); }
+}
+.dd-edit-panel-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 24px; border-bottom: 1px solid #e3ebf0;
+  background: linear-gradient(135deg, #006078 0%, #008779 100%);
+}
+.dd-edit-panel-header h2 { margin: 0; font-size: 18px; color: #fff; }
+.dd-panel-back-btn {
+  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+  color: #fff; padding: 5px 12px; border-radius: 14px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.dd-panel-back-btn:hover { background: rgba(255,255,255,0.35); }
+.dd-edit-close {
+  background: rgba(255,255,255,0.2); border: none; color: #fff;
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.dd-edit-close:hover { background: rgba(255,255,255,0.35); }
+.dd-edit-panel-body { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* Profile View Inside Panel */
+.dd-profile-view-wrap {
+  display: flex; flex-direction: column; gap: 20px;
+}
+.dd-profile-view-hero {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px; background: #f8fafc;
+  border: 1px solid #e3ebf0; border-radius: 14px;
+}
+.dd-profile-stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+}
+.dd-profile-view-section {
+  background: #fff; border: 1px solid #e3ebf0;
+  border-radius: 12px; padding: 16px;
+}
+.dd-profile-view-section h3 {
+  margin: 0 0 10px; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  color: #5d7285; border-bottom: 1px solid #f0f4f7; padding-bottom: 6px;
+}
+.dd-profile-view-bio {
+  margin: 0; font-size: 13.5px; line-height: 1.6;
+  color: #2c3e50;
+}
+.dd-profile-details-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.dd-profile-detail-card {
+  background: #f8fafc; border: 1px solid #eef2f5;
+  border-radius: 8px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.dd-detail-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  color: #7a8b99; letter-spacing: 0.4px;
+}
+.dd-detail-val {
+  font-size: 13px; font-weight: 600; color: #1c2a38;
+  word-break: break-word;
+}
+
+/* Edit Mode Sections */
+.dd-edit-section { margin-bottom: 24px; }
+.dd-edit-section h3 {
+  margin: 0 0 14px; font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  color: #5d7285; border-bottom: 1px solid #e3ebf0; padding-bottom: 8px;
+}
+.dd-edit-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dd-edit-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.dd-edit-actions {
+  display: flex; justify-content: flex-end; gap: 12px;
+  margin-top: 8px; padding-top: 20px; border-top: 1px solid #e3ebf0;
+}
+
+/* Shared edit field styles */
+.edit-field-group { margin-bottom: 12px; }
+.edit-field-group label {
+  display: block; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: #5d7285; margin-bottom: 6px;
+}
+.edit-field-group input,
+.edit-field-group textarea,
+.edit-field-group select {
+  width: 100%; padding: 10px 14px;
+  border: 1px solid #d1e8ef; border-radius: 8px;
+  background: #fff; color: #1c2a38; font-size: 14px;
+  box-sizing: border-box; font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.edit-field-group input:focus,
+.edit-field-group textarea:focus {
+  outline: none; border-color: #006078;
+  box-shadow: 0 0 0 3px rgba(0,96,120,0.12);
+}
+
+/* ─── Shared Buttons ─────────────────────────────────────────────── */
+.doc-btn-primary {
+  background: linear-gradient(135deg, #006078 0%, #008779 100%);
+  color: #fff; border: none; padding: 10px 22px;
+  border-radius: 20px; font-size: 14px; font-weight: 700;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s; box-shadow: 0 2px 10px rgba(0,96,120,0.25);
+}
+.doc-btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,96,120,0.35); }
+.doc-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.doc-btn-secondary {
+  background: #fff; color: #1c2a38;
+  border: 1px solid #c8d9e2; padding: 9px 18px;
+  border-radius: 20px; font-size: 14px; font-weight: 600;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s;
+}
+.doc-btn-secondary:hover { background: #f0f7fa; border-color: #006078; }
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .dd-apt-detail-layout { grid-template-columns: 1fr; }
+  .dd-apt-detail-nav { flex-direction: row; overflow-x: auto; }
+  .dd-hero-stats { gap: 8px; }
+  .dd-mini-stat { min-width: 60px; padding: 8px 10px; }
+  .dd-edit-grid-2, .dd-edit-grid-4 { grid-template-columns: 1fr; }
+  .doctor-nav-bar { padding: 12px 16px; }
+  .dd-hero-strip { padding: 16px; }
+  .dd-main-content { padding: 16px; }
+}
+
+/* ─── Photo Upload in Edit Profile ───────────────────────────────── */
+.dd-photo-upload-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px dashed #c0d8e2;
+  border-radius: 10px;
+}
+.dd-photo-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid #008779;
+  overflow: hidden;
+  background: #e6f4f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 135, 121, 0.15);
+}
+.dd-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dd-photo-initials {
+  font-size: 24px;
+  font-weight: 700;
+  color: #006078;
+}
+.dd-photo-upload-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dd-upload-btn {
+  background: linear-gradient(135deg, #006078 0%, #008779 100%);
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 96, 120, 0.2);
+}
+.dd-upload-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 96, 120, 0.3);
+}
+.dd-remove-photo-btn {
+  background: transparent;
+  color: #dc3545;
+  border: 1px solid #f5c2c7;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+  transition: all 0.15s;
+}
+.dd-remove-photo-btn:hover {
+  background: #fdf2f2;
+}
+.dd-photo-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+.dd-photo-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* ─── Cascading Dropdowns & Read-only Location ───────────────────── */
+.dd-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.dd-select-spinner {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  font-size: 13px;
+}
+.dd-cascade-select {
+  cursor: pointer;
+}
+.dd-cascade-select:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+.dd-cascade-count {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #006078;
+  background: #e6f4f8;
+  padding: 1px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.2px;
+}
+.dd-readonly-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+.dd-readonly-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.dd-readonly-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.dd-readonly-field {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  font-size: 13.5px !important;
+  color: #334155 !important;
+  font-weight: 500 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+

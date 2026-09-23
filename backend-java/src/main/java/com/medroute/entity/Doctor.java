@@ -32,7 +32,7 @@ public class Doctor {
     private Integer avgMinutesPerPatient;
 
     // Doctor Directory — added for the searchable doctor profile feature.
-    @Column(name = "photo_url", length = 500)
+    @Column(name = "photo_url", columnDefinition = "TEXT")
     private String photoUrl;
 
     @Column(name = "bio", columnDefinition = "TEXT")

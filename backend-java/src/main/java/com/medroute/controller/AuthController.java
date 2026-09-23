@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,14 +34,20 @@ public class AuthController {
     @Autowired
     private PatientRepository patientRepository;
 
+    @Autowired
+    private com.medroute.repository.DoctorRepository doctorRepository;
+
+    @Autowired
+    private com.medroute.repository.HospitalDepartmentRepository departmentRepository;
+
     // ═══════════════════════════════════════════════════════════════════════
     // SIGNUP
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
      * POST /api/auth/signup
-     * Body: { fullName, email, mobile, password }
-     * Creates a UserAccount + auto-creates a linked Patient profile.
+     * Body: { fullName, email, mobile, password, role, doctorId, qualification, ... }
+     * Supports DOCTOR, STAFF, PATIENT roles.
      */
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody SignupRequest req) {
@@ -60,28 +67,67 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists");
         }
 
-        // 1. Create the user account first (to get an ID for patient isolation)
+        String role = (req.role != null && !req.role.isBlank()) ? req.role.trim().toUpperCase() : "PATIENT";
+
+        // 1. Create the user account
         UserAccount account = new UserAccount();
         account.setEmail(req.email.trim().toLowerCase());
         account.setPasswordHash(hashPassword(req.password));
         account.setFullName(req.fullName.trim());
         account.setMobile(req.mobile != null ? req.mobile.trim() : "");
+        account.setRole(role);
+
+        // If DOCTOR role: link to existing doctor or create new Doctor record
+        if ("DOCTOR".equals(role)) {
+            Long docId = req.doctorId;
+            if (docId == null || docId <= 0) {
+                String docName = req.fullName.trim();
+                if (!docName.startsWith("Dr.") && !docName.startsWith("Dr ")) {
+                    docName = "Dr. " + docName;
+                }
+                com.medroute.entity.Doctor doc = new com.medroute.entity.Doctor();
+                doc.setDoctorName(docName);
+                doc.setQualification(req.qualification != null && !req.qualification.isBlank() ? req.qualification.trim() : "MBBS, MD (Specialist)");
+                doc.setDailyLimit(req.dailyLimit != null ? req.dailyLimit : 22);
+                doc.setYearsOfExperience(req.yearsOfExperience != null ? req.yearsOfExperience : 12);
+                doc.setTotalPatientsTreated(8100);
+                doc.setAvgMinutesPerPatient(req.avgMinutesPerPatient != null ? req.avgMinutesPerPatient : 15);
+                doc.setBio(req.bio != null && !req.bio.isBlank() ? req.bio : docName + " is a specialist providing patient-first healthcare and evidence-based treatments.");
+                doc.setPhotoUrl("");
+
+                Long deptId = req.deptId != null ? req.deptId : 1L;
+                var deptOpt = departmentRepository.findById(deptId);
+                if (deptOpt.isEmpty()) {
+                    List<com.medroute.entity.HospitalDepartment> allDepts = departmentRepository.findAll();
+                    if (!allDepts.isEmpty()) {
+                        doc.setDepartment(allDepts.get(0));
+                    }
+                } else {
+                    doc.setDepartment(deptOpt.get());
+                }
+                com.medroute.entity.Doctor savedDoc = doctorRepository.save(doc);
+                docId = savedDoc.getId();
+            }
+            account.setDoctorId(docId);
+        }
+
         UserAccount saved = userAccountRepository.save(account);
 
-        // 2. Auto-create a Patient profile owned by this user account
-        Patient patient = new Patient();
-        patient.setFullName(req.fullName.trim());
-        patient.setAge(25);  // default — user can update later
-        patient.setGender("other");
-        patient.setBloodGroup("");
-        patient.setMobile(req.mobile != null ? req.mobile.trim() : "0000000000");
-        patient.setRelation("self");
-        patient.setUserAccountId(saved.getId()); // multi-tenancy: patient belongs to user
-        Patient savedPatient = patientRepository.save(patient);
+        // If PATIENT role: auto-create a default Patient profile
+        if ("PATIENT".equals(role)) {
+            Patient patient = new Patient();
+            patient.setFullName(req.fullName.trim());
+            patient.setAge(25);
+            patient.setGender("other");
+            patient.setBloodGroup("");
+            patient.setMobile(req.mobile != null ? req.mobile.trim() : "0000000000");
+            patient.setRelation("self");
+            patient.setUserAccountId(saved.getId());
+            Patient savedPatient = patientRepository.save(patient);
 
-        // 3. Link the user account back to the patient (default profile)
-        account.setDefaultPatientId(savedPatient.getId());
-        userAccountRepository.save(account);
+            account.setDefaultPatientId(savedPatient.getId());
+            userAccountRepository.save(account);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(toUserResponse(saved));
     }
@@ -182,13 +228,15 @@ public class AuthController {
     }
 
     private Map<String, Object> toUserResponse(UserAccount account) {
-        return Map.of(
-                "id", account.getId(),
-                "email", account.getEmail(),
-                "fullName", account.getFullName(),
-                "mobile", account.getMobile() != null ? account.getMobile() : "",
-                "defaultPatientId", account.getDefaultPatientId() != null ? account.getDefaultPatientId() : 0
-        );
+        Map<String, Object> resp = new java.util.HashMap<>();
+        resp.put("id", account.getId());
+        resp.put("email", account.getEmail());
+        resp.put("fullName", account.getFullName());
+        resp.put("mobile", account.getMobile() != null ? account.getMobile() : "");
+        resp.put("role", account.getRole());
+        resp.put("doctorId", account.getDoctorId());
+        resp.put("defaultPatientId", account.getDefaultPatientId() != null ? account.getDefaultPatientId() : 0);
+        return resp;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -200,6 +248,14 @@ public class AuthController {
         public String email;
         public String mobile;
         public String password;
+        public String role; // "DOCTOR" | "STAFF" | "PATIENT"
+        public Long doctorId; // Link to existing doctor
+        public String qualification;
+        public Long deptId;
+        public Integer yearsOfExperience;
+        public Integer dailyLimit;
+        public Integer avgMinutesPerPatient;
+        public String bio;
     }
 
     public static class LoginRequest {

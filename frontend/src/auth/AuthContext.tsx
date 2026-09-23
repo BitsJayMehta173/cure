@@ -5,14 +5,31 @@ export interface UserInfo {
   fullName: string;
   email: string;
   mobile: string;
-  defaultPatientId: number;
+  role: 'DOCTOR' | 'STAFF' | 'PATIENT';
+  doctorId?: number | null;
+  defaultPatientId?: number | null;
+}
+
+export interface SignupData {
+  fullName: string;
+  email: string;
+  mobile: string;
+  password: string;
+  role?: 'DOCTOR' | 'STAFF' | 'PATIENT';
+  doctorId?: number | null;
+  qualification?: string;
+  deptId?: number | null;
+  yearsOfExperience?: number;
+  dailyLimit?: number;
+  avgMinutesPerPatient?: number;
+  bio?: string;
 }
 
 interface AuthContextType {
   user: UserInfo | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (data: { fullName: string; email: string; mobile: string; password: string }) => Promise<void>;
+  signup: (data: SignupData) => Promise<void>;
   logout: () => void;
   updateProfile: (data: { fullName?: string; email?: string; mobile?: string }) => Promise<void>;
 }
@@ -40,8 +57,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const persistUser = (userData: UserInfo) => {
-    setUser(userData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+    // Ensure role has a sensible default if missing from older sessions
+    const sanitizedUser: UserInfo = {
+      ...userData,
+      role: userData.role || 'PATIENT'
+    };
+    setUser(sanitizedUser);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedUser));
   };
 
   const login = useCallback(async (email: string, password: string) => {
@@ -58,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     persistUser(data);
   }, []);
 
-  const signup = useCallback(async (data: { fullName: string; email: string; mobile: string; password: string }) => {
+  const signup = useCallback(async (data: SignupData) => {
     const res = await fetch(`${API_BASE}/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -46,7 +46,14 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findAllByOrderByIdDesc();
 
     /**
-     * Fetch all bookings for a doctor on a date (for token preview/display).
+     * All appointments for a specific doctor, newest first.
+     * Used by the Doctor Portal appointments tab.
+     */
+    List<Appointment> findByDoctorIdOrderByIdDesc(Long doctorId);
+
+    /**
+     * All appointments for a specific doctor on a specific date, ordered by token number.
+     * Used by the Doctor Portal appointments tab date filter.
      */
     List<Appointment> findByDoctorIdAndDateStrOrderByTokenNumAsc(Long doctorId, String dateStr);
 

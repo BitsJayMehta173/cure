@@ -1,15 +1,79 @@
 .auth-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 32px;
+  padding: 32px 20px;
   background: var(--color-bg-main);
   background-image: 
     radial-gradient(at 0% 0%, hsla(210,100%,92%,0.8) 0, transparent 50%), 
     radial-gradient(at 100% 100%, hsla(220,100%,92%,0.8) 0, transparent 50%),
     radial-gradient(at 50% 50%, hsla(240,80%,96%,0.5) 0, transparent 60%);
   background-attachment: fixed;
+}
+
+/* ─── Role Switcher Tabs ───────────────────────────────────────── */
+
+.auth-role-tabs-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+  z-index: 10;
+}
+
+.auth-role-tabs {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 6px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-light, #e3ebf0);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  gap: 6px;
+}
+
+.auth-role-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted, #5d7285);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-role-tab:hover:not(.active) {
+  background: rgba(0, 96, 120, 0.06);
+  color: var(--color-text-main, #1c2a38);
+}
+
+.auth-role-tab.active.tab-doctor {
+  background: linear-gradient(135deg, #006078 0%, #008779 100%);
+  color: #ffffff;
+  box-shadow: 0 3px 12px rgba(0, 96, 120, 0.3);
+}
+
+.auth-role-tab.active.tab-staff {
+  background: linear-gradient(135deg, #0b5394 0%, #3d85c6 100%);
+  color: #ffffff;
+  box-shadow: 0 3px 12px rgba(11, 83, 148, 0.3);
+}
+
+.auth-role-tab.active.tab-patient {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  color: #ffffff;
+  box-shadow: 0 3px 12px rgba(59, 130, 246, 0.3);
+}
+
+.auth-role-tab .tab-icon {
+  font-size: 16px;
 }
 
 .auth-card {

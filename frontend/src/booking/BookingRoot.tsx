@@ -175,18 +175,18 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
         )}
 
         {state.currentStep === 'calendar' &&
-         state.selectedHospitalId &&
-         state.selectedDepartmentId && (
-          <CalendarStep
-            hospitalId={state.selectedHospitalId}
-            deptId={state.selectedDepartmentId}
-            profileId={state.selectedProfileId}
-            stateName={state.selectedState || ''}
-            doctorId={state.selectedDoctorId ?? undefined}
-            onBookingSuccess={handleBookingSuccess}
-            onBack={handleCalendarBack}
-          />
-        )}
+          state.selectedHospitalId &&
+          state.selectedDepartmentId && (
+            <CalendarStep
+              hospitalId={state.selectedHospitalId}
+              deptId={state.selectedDepartmentId}
+              profileId={state.selectedProfileId}
+              stateName={state.selectedState || ''}
+              doctorId={state.selectedDoctorId ?? undefined}
+              onBookingSuccess={handleBookingSuccess}
+              onBack={handleCalendarBack}
+            />
+          )}
 
         {state.currentStep === 'appointments' && (
           <AppointmentsList

@@ -46,6 +46,13 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     List<Doctor> findAllWithDepartment();
 
     /**
+     * Fetch a single doctor with department AND hospital eagerly loaded.
+     * Used by updateDoctorProfile to allow hospital/department edits.
+     */
+    @Query("SELECT d FROM Doctor d JOIN FETCH d.department dept JOIN FETCH dept.hospital WHERE d.id = :id")
+    Optional<Doctor> findByIdWithDepartment(@Param("id") Long id);
+
+    /**
      * Fetch doctors by hospital + department with full eager load (no lazy proxies).
      * Used by BookingFlowService to avoid N+1 in getMonthlySlots, previewToken, confirmBooking.
      */

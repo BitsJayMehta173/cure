@@ -36,9 +36,10 @@ public class MedRouteApplication {
             try {
                 jdbc.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm");
                 jdbc.execute("CREATE INDEX IF NOT EXISTS doctor_name_trgm_idx ON doctor USING gin (doctor_name gin_trgm_ops)");
-                System.out.println("🔍 pg_trgm extension and doctor_name index ready.");
+                jdbc.execute("ALTER TABLE doctor ALTER COLUMN photo_url TYPE TEXT");
+                System.out.println("🔍 pg_trgm extension, doctor_name index, and photo_url TEXT ready.");
             } catch (Exception e) {
-                System.out.println("⚠️  Could not ensure pg_trgm index: " + e.getMessage());
+                System.out.println("⚠️  Could not ensure pg_trgm index or photo_url TEXT: " + e.getMessage());
             }
 
             // 2. If DB is empty, full seed. If populated, backfill new Doctor Directory columns

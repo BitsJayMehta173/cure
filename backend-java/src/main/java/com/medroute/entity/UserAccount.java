@@ -39,11 +39,18 @@ public class UserAccount {
     @Column(name = "default_patient_id")
     private Long defaultPatientId;
 
+    @Column(name = "role", length = 20)
+    private String role = "PATIENT";
+
+    @Column(name = "doctor_id")
+    private Long doctorId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     public UserAccount() {
         this.createdAt = LocalDateTime.now();
+        this.role = "PATIENT";
     }
 
     // ─── Getters & Setters ───────────────────────────────────────────────
@@ -57,6 +64,10 @@ public class UserAccount {
     public void setFullName(String fullName) { this.fullName = fullName; }
     public String getMobile() { return mobile; }
     public void setMobile(String mobile) { this.mobile = mobile; }
+    public String getRole() { return role != null ? role : "PATIENT"; }
+    public void setRole(String role) { this.role = role; }
+    public Long getDoctorId() { return doctorId; }
+    public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
     public Long getDefaultPatientId() { return defaultPatientId; }
     public void setDefaultPatientId(Long defaultPatientId) { this.defaultPatientId = defaultPatientId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
