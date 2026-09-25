@@ -58,7 +58,9 @@ public class PatientRecordsService {
     }
 
     public List<MedicalReportDTO> getReports(Long appointmentId, Long userAccountId) {
-        verifyAppointmentOwnership(appointmentId, userAccountId);
+        if (userAccountId != 0) {
+            verifyAppointmentOwnership(appointmentId, userAccountId);
+        }
         return medicalReportRepository.findByAppointmentIdOrderByReportDateDesc(appointmentId)
                 .stream()
                 .map(this::toReportDTO)
@@ -66,11 +68,24 @@ public class PatientRecordsService {
     }
 
     public List<PrescriptionDTO> getMedicines(Long appointmentId, Long userAccountId) {
-        verifyAppointmentOwnership(appointmentId, userAccountId);
+        // userAccountId = 0 is a special bypass for DoctorPortal (since doctors don't own the patient record in the same way)
+        if (userAccountId != 0) {
+            verifyAppointmentOwnership(appointmentId, userAccountId);
+        }
         return prescriptionRepository.findByAppointmentIdOrderByIdAsc(appointmentId)
                 .stream()
                 .map(this::toPrescriptionDTO)
                 .toList();
+    }
+
+    @Transactional
+    public PrescriptionDTO addMedicine(Prescription prescription) {
+        return toPrescriptionDTO(prescriptionRepository.save(prescription));
+    }
+
+    @Transactional
+    public MedicalReportDTO addReport(MedicalReport report) {
+        return toReportDTO(medicalReportRepository.save(report));
     }
 
     @Transactional

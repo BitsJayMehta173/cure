@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import './DoctorDashboard.css';
 import type { DoctorProfile } from '../booking/types/booking.types';
+import { PatientProfileView } from '../components/PatientProfileView';
+import { ReferralModal } from '../components/ReferralModal';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -543,6 +545,7 @@ const DoctorPatientDirectory: React.FC<DoctorPatientDirectoryProps> = ({ doctorI
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filtered, setFiltered] = useState<DoctorPatient[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
   useEffect(() => {
@@ -561,6 +564,10 @@ const DoctorPatientDirectory: React.FC<DoctorPatientDirectoryProps> = ({ doctorI
       p.bloodGroup?.toLowerCase().includes(q)
     ));
   }, [search, patients]);
+
+  if (selectedPatientId) {
+    return <PatientProfileView patientId={selectedPatientId} doctorId={doctorId} onClose={() => setSelectedPatientId(null)} />;
+  }
 
   return (
     <div className="dd-patient-dir">
@@ -588,7 +595,7 @@ const DoctorPatientDirectory: React.FC<DoctorPatientDirectoryProps> = ({ doctorI
 
       <div className="dd-patient-grid">
         {filtered.map(p => (
-          <div key={p.id} className="dd-patient-card">
+          <div key={p.id} className="dd-patient-card" onClick={() => setSelectedPatientId(p.id)} style={{ cursor: 'pointer' }}>
             <div className="dd-patient-avatar">{p.fullName?.charAt(0).toUpperCase() || '?'}</div>
             <div className="dd-patient-info">
               <div className="dd-patient-name">{p.fullName}</div>
@@ -616,18 +623,27 @@ const DoctorPatientDirectory: React.FC<DoctorPatientDirectoryProps> = ({ doctorI
 
 interface DoctorAptDetailProps {
   appointment: DoctorAppointment;
+  doctorId: number;
   onBack: () => void;
 }
 
 const STEPS = ['Scheduled', 'Confirmed', 'Completed'] as const;
 
-const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, onBack }) => {
-  const [tab, setTab] = useState<'status' | 'prescriptions' | 'advice'>('status');
+const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId, onBack }) => {
+  const [tab, setTab] = useState<'status' | 'reports' | 'prescriptions' | 'advice' | 'refer'>('status');
   const [advice, setAdvice] = useState(appointment.generalAdvice || '');
   const [savingAdvice, setSavingAdvice] = useState(false);
   const [adviceSaved, setAdviceSaved] = useState(false);
+  
   const [medicines, setMedicines] = useState<any[]>([]);
   const [medsLoading, setMedsLoading] = useState(false);
+  const [newMed, setNewMed] = useState({ medicineName: '', dosage: '', frequency: '', duration: '', instructions: '' });
+
+  const [reports, setReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [newReport, setNewReport] = useState({ title: '', textContent: '', reportType: 'text' });
+
+  const [isReferralOpen, setIsReferralOpen] = useState(false);
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
   const isCancelled = appointment.status === 'cancelled';
@@ -639,12 +655,55 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, onBack }
 
   useEffect(() => {
     if (tab === 'prescriptions') {
-      setMedsLoading(true);
-      fetch(`${API_BASE}/api/records/medicines?appointmentId=${appointment.id}&userId=0`)
-        .then(r => r.ok ? r.json() : []).then(setMedicines).catch(() => setMedicines([]))
-        .finally(() => setMedsLoading(false));
+      loadMedicines();
+    } else if (tab === 'reports') {
+      loadReports();
     }
   }, [tab, appointment.id]);
+
+  const loadMedicines = () => {
+    setMedsLoading(true);
+    fetch(`${API_BASE}/api/records/medicines?appointmentId=${appointment.id}&userId=0`)
+      .then(r => r.ok ? r.json() : []).then(setMedicines).catch(() => setMedicines([]))
+      .finally(() => setMedsLoading(false));
+  };
+
+  const loadReports = () => {
+    setReportsLoading(true);
+    fetch(`${API_BASE}/api/records/reports?appointmentId=${appointment.id}&userId=0`)
+      .then(r => r.ok ? r.json() : []).then(setReports).catch(() => setReports([]))
+      .finally(() => setReportsLoading(false));
+  };
+
+  const handleAddMedicine = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMed.medicineName) return;
+    try {
+      await fetch(`${API_BASE}/api/records/medicines`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newMed, appointmentId: appointment.id })
+      });
+      setNewMed({ medicineName: '', dosage: '', frequency: '', duration: '', instructions: '' });
+      loadMedicines();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReport.title) return;
+    try {
+      await fetch(`${API_BASE}/api/records/reports`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newReport, appointmentId: appointment.id })
+      });
+      setNewReport({ title: '', textContent: '', reportType: 'text' });
+      loadReports();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const saveAdvice = async () => {
     setSavingAdvice(true);
@@ -667,8 +726,10 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, onBack }
         <div className="dd-apt-detail-nav">
           {[
             { key: 'status', label: 'Status', icon: '🩺' },
+            { key: 'reports', label: 'Medical Reports', icon: '📄' },
             { key: 'prescriptions', label: 'Prescriptions', icon: '💊' },
             { key: 'advice', label: 'General Advice', icon: '📝' },
+            { key: 'refer', label: 'Refer Case', icon: '🔄' },
           ].map(item => (
             <button
               key={item.key}
@@ -741,8 +802,55 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, onBack }
             </div>
           )}
 
+          {tab === 'reports' && (
+            <div>
+              <div className="dd-advice-panel" style={{ marginBottom: '20px' }}>
+                <h3>📄 Add Medical Report</h3>
+                <form onSubmit={handleAddReport} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input type="text" placeholder="Report Title (e.g., Blood Test Results)" value={newReport.title} onChange={e => setNewReport({...newReport, title: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px' }} required />
+                  <textarea placeholder="Report Details / Content" value={newReport.textContent} onChange={e => setNewReport({...newReport, textContent: e.target.value})} className="dd-advice-textarea" rows={4} required />
+                  <button type="submit" className="doc-btn-primary" style={{ alignSelf: 'flex-start' }}>Upload Report</button>
+                </form>
+              </div>
+
+              {reportsLoading && <p className="dd-loading">Loading reports...</p>}
+              {!reportsLoading && reports.length === 0 && (
+                <div className="dd-empty-state" style={{ padding: '40px 20px' }}>
+                  <div className="dd-empty-icon">📄</div>
+                  <h3>No reports yet</h3>
+                  <p>Medical reports for this appointment will appear here.</p>
+                </div>
+              )}
+              <div className="dd-medicine-list">
+                {reports.map((r: any) => (
+                  <div key={r.id} className="dd-medicine-card">
+                    <div className="dd-medicine-top">
+                      <h4>📄 {r.title}</h4>
+                      <span className="dd-dosage">{r.reportDate}</span>
+                    </div>
+                    <p className="dd-medicine-note">{r.textContent}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {tab === 'prescriptions' && (
             <div>
+              <div className="dd-advice-panel" style={{ marginBottom: '20px' }}>
+                <h3>💊 Add Prescription</h3>
+                <form onSubmit={handleAddMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input type="text" placeholder="Medicine Name" value={newMed.medicineName} onChange={e => setNewMed({...newMed, medicineName: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px' }} required />
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input type="text" placeholder="Dosage (e.g., 500mg)" value={newMed.dosage} onChange={e => setNewMed({...newMed, dosage: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px', flex: 1 }} />
+                    <input type="text" placeholder="Frequency (e.g., Twice daily)" value={newMed.frequency} onChange={e => setNewMed({...newMed, frequency: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px', flex: 1 }} />
+                  </div>
+                  <input type="text" placeholder="Duration (e.g., 5 days)" value={newMed.duration} onChange={e => setNewMed({...newMed, duration: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px' }} />
+                  <textarea placeholder="Instructions" value={newMed.instructions} onChange={e => setNewMed({...newMed, instructions: e.target.value})} className="dd-advice-textarea" rows={2} />
+                  <button type="submit" className="doc-btn-primary" style={{ alignSelf: 'flex-start' }}>Add Medicine</button>
+                </form>
+              </div>
+
               {medsLoading && <p className="dd-loading">Loading prescriptions...</p>}
               {!medsLoading && medicines.length === 0 && (
                 <div className="dd-empty-state" style={{ padding: '40px 20px' }}>
@@ -788,6 +896,30 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, onBack }
               </div>
             </div>
           )}
+
+          {tab === 'refer' && (
+            <div className="dd-advice-panel">
+              <h3>🔄 Refer this Case</h3>
+              <p className="dd-advice-subtitle">
+                Send this patient's medical history and case details to another doctor in the network.
+              </p>
+              <div style={{ marginTop: '20px' }}>
+                <button className="doc-btn-primary" onClick={() => setIsReferralOpen(true)}>
+                  Search & Refer Doctor
+                </button>
+              </div>
+
+              {isReferralOpen && (
+                <ReferralModal 
+                  patientId={appointment.patientFk!}
+                  patientName={appointment.patientName}
+                  currentDoctorId={doctorId}
+                  appointmentId={appointment.id}
+                  onClose={() => setIsReferralOpen(false)}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -825,7 +957,7 @@ const DoctorAppointmentsTab: React.FC<DoctorAppointmentsTabProps> = ({ doctorId 
   }, [doctorId, selectedDate]);
 
   if (selectedApt) {
-    return <DoctorAptDetail appointment={selectedApt} onBack={() => setSelectedApt(null)} />;
+    return <DoctorAptDetail appointment={selectedApt} doctorId={doctorId} onBack={() => setSelectedApt(null)} />;
   }
 
   return (
@@ -894,6 +1026,146 @@ const DoctorAppointmentsTab: React.FC<DoctorAppointmentsTabProps> = ({ doctorId 
   );
 };
 
+// ─── Sub-component: Doctor Referrals Tab ────────────────────────────────────
+
+interface ReferralItem {
+  id: number;
+  patientId: number;
+  patientName: string;
+  patientAge: number;
+  patientGender: string;
+  patientBloodGroup: string;
+  patientLocation: string;
+  referredByDoctorId: number;
+  referredByDoctorName: string;
+  referredByHospital: string;
+  referredByDepartment: string;
+  notes: string;
+  createdAt: string;
+  appointmentId?: number;
+  appointmentDate?: string;
+}
+
+interface DoctorReferralsTabProps {
+  doctorId: number;
+}
+
+const DoctorReferralsTab: React.FC<DoctorReferralsTabProps> = ({ doctorId }) => {
+  const [referrals, setReferrals] = useState<ReferralItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReferral, setSelectedReferral] = useState<ReferralItem | null>(null);
+  const [openedApt, setOpenedApt] = useState<any>(null); // For DoctorAptDetail
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${API_BASE}/api/doctor-portal/referrals?doctorId=${doctorId}`)
+      .then(r => r.json())
+      .then(setReferrals)
+      .catch(() => setReferrals([]))
+      .finally(() => setLoading(false));
+  }, [doctorId]);
+
+  const handleOpenAppointment = (appointmentId: number) => {
+    fetch(`${API_BASE}/api/doctor-portal/appointments/${appointmentId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(apt => {
+        if (apt) setOpenedApt(apt);
+      })
+      .catch(e => console.error(e));
+  };
+
+  if (openedApt) {
+    return <DoctorAptDetail appointment={openedApt} doctorId={doctorId} onBack={() => setOpenedApt(null)} />;
+  }
+
+  const handleCompleteAnalysis = async (referralId: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/doctor-portal/referrals/${referralId}/complete-analysis`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        setReferrals(prev => prev.map(r => r.id === referralId ? { ...r, referralStatus: 'analysed' } : r));
+        setSelectedReferral(prev => prev && prev.id === referralId ? { ...prev, referralStatus: 'analysed' } : prev);
+      }
+    } catch (e) {
+      console.error('Failed to complete analysis', e);
+    }
+  };
+
+  if (selectedReferral) {
+    const isSingleCase = selectedReferral.appointmentId != null;
+    return (
+      <PatientProfileView 
+        patientId={selectedReferral.patientId} 
+        doctorId={doctorId} 
+        onClose={() => setSelectedReferral(null)}
+        restrictedAppointmentId={isSingleCase ? selectedReferral.appointmentId : null}
+        onOpenAppointment={handleOpenAppointment}
+        referralId={selectedReferral.id}
+        referralStatus={(selectedReferral as any).referralStatus}
+        onAnalysisComplete={handleCompleteAnalysis}
+      />
+    );
+  }
+
+  return (
+    <div className="dd-patient-dir">
+      <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>🔄 Referred Cases</h3>
+
+      {loading && <div className="dd-loading">⏳ Loading referrals...</div>}
+
+      {!loading && referrals.length === 0 && (
+        <div className="dd-empty-state">
+          <div className="dd-empty-icon">📋</div>
+          <h3>No referrals yet</h3>
+          <p>When another doctor refers a patient to you, it will appear here.</p>
+        </div>
+      )}
+
+      <div className="dd-patient-grid">
+        {referrals.map(ref => (
+          <div
+            key={ref.id}
+            className="dd-patient-card"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setSelectedReferral(ref)}
+          >
+            <div className="dd-patient-avatar">{ref.patientName?.charAt(0).toUpperCase() || '?'}</div>
+            <div className="dd-patient-info">
+              <div className="dd-patient-name">{ref.patientName}</div>
+              <div className="dd-patient-meta">
+                {ref.patientAge && <span>{ref.patientAge}y</span>}
+                {ref.patientGender && <span>· {ref.patientGender}</span>}
+                {ref.patientBloodGroup && <span className="dd-blood-group">🩸 {ref.patientBloodGroup}</span>}
+              </div>
+              {ref.patientLocation && (
+                <div className="dd-patient-mobile">📍 {ref.patientLocation}</div>
+              )}
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                <strong>Referred by:</strong> {ref.referredByDoctorName}
+              </div>
+              <div style={{ fontSize: '11px', color: '#888' }}>
+                {ref.referredByDepartment}{ref.referredByHospital ? `, ${ref.referredByHospital}` : ''}
+              </div>
+              {ref.notes && (
+                <div style={{ fontSize: '11px', color: '#555', marginTop: '4px', fontStyle: 'italic', borderLeft: '2px solid var(--color-primary, #00766c)', paddingLeft: '6px' }}>
+                  "{ref.notes}"
+                </div>
+              )}
+              {ref.createdAt && (
+                <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>
+                  Referred on: {new Date(ref.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── Main DoctorDashboard ──────────────────────────────────────────────────
 
 export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ doctorId }) => {
@@ -904,7 +1176,7 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ doctorId }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showEditPanel, setShowEditPanel] = useState(false);
-  const [activeTab, setActiveTab] = useState<'patients' | 'appointments'>('patients');
+  const [activeTab, setActiveTab] = useState<'patients' | 'appointments' | 'referrals'>('patients');
   const [imgError, setImgError] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -981,6 +1253,12 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ doctorId }) =>
             onClick={() => setActiveTab('appointments')}
           >
             📅 Appointments
+          </button>
+          <button
+            className={`dd-nav-tab ${activeTab === 'referrals' ? 'active' : ''}`}
+            onClick={() => setActiveTab('referrals')}
+          >
+            🔄 Referrals
           </button>
         </nav>
 
@@ -1063,6 +1341,7 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ doctorId }) =>
         <div className="dd-tab-content">
           {activeTab === 'patients' && <DoctorPatientDirectory doctorId={Number(activeDoctorId)} />}
           {activeTab === 'appointments' && <DoctorAppointmentsTab doctorId={Number(activeDoctorId)} />}
+          {activeTab === 'referrals' && <DoctorReferralsTab doctorId={Number(activeDoctorId)} />}
         </div>
       </div>
     </div>

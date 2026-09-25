@@ -45,6 +45,15 @@ public class Patient {
     @Column(nullable = false)
     private String relation;  // "self" | "spouse" | "child" | "parent" | "sibling" | "other"
 
+    @Column(name = "location")
+    private String location;
+
+    @Column(name = "address", columnDefinition = "TEXT")
+    private String address;
+
+    @Column(name = "health_profile", columnDefinition = "TEXT")
+    private String healthProfile;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -78,4 +87,11 @@ public class Patient {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public Long getUserAccountId() { return userAccountId; }
     public void setUserAccountId(Long userAccountId) { this.userAccountId = userAccountId; }
+    
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public String getHealthProfile() { return healthProfile; }
+    public void setHealthProfile(String healthProfile) { this.healthProfile = healthProfile; }
 }

@@ -340,3 +340,141 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ─── Referred badge on status panel ──────────────────────────────── */
+.status.referred {
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 4px;
+  letter-spacing: 0.6px;
+}
+
+/* ─── Referral info block inside StatusPanel ─────────────────────── */
+.status-referral-info {
+  margin: 16px 0;
+  background: linear-gradient(135deg, #faf5ff 0%, #f3f0ff 100%);
+  border: 1px solid #a78bfa;
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 14px;
+}
+
+.status-referral-header {
+  margin-bottom: 12px;
+}
+
+.referral-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.6px;
+}
+
+.status-referral-route {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.status-ref-doctor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #e9d5ff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  flex: 1;
+  min-width: 130px;
+}
+
+.ref-doc-icon { font-size: 18px; }
+
+.ref-doc-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.ref-doc-detail {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.status-ref-connector {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #7c3aed;
+}
+
+.ref-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #a78bfa;
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+.ref-dot:nth-child(2) { animation-delay: 0.3s; }
+.ref-dot:nth-child(3) { animation-delay: 0.6s; }
+
+.ref-arrow { font-size: 13px; margin-left: 2px; }
+
+.status-ref-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #e9d5ff;
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 8px;
+}
+
+.status-ref-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b7280;
+  letter-spacing: 0.4px;
+}
+
+.status-ref-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.status-ref-value.pending { color: #d97706; }
+.status-ref-value.available { color: #059669; }
+
+.status-ref-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-ref-dot.pending { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+.status-ref-dot.available { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.2); }
+
+.status-ref-notes {
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+  padding: 6px 10px;
+  background: rgba(124, 58, 237, 0.05);
+  border-left: 3px solid #a78bfa;
+  border-radius: 0 6px 6px 0;
+}

@@ -193,6 +193,18 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
             profileId={state.selectedProfileId}
             initialProfileId={state.pendingProfileId}
             onBack={handleAppointmentsBack}
+            onScheduleFollowUp={(ref) => {
+              if (ref.referredToHospitalId && ref.referredToDeptId) {
+                updateState({
+                  currentStep: 'calendar',
+                  selectedProfileId: ref.patientId,
+                  selectedHospitalId: ref.referredToHospitalId,
+                  selectedDepartmentId: ref.referredToDeptId,
+                  selectedDoctorId: ref.referredToDoctorId,
+                  previousStep: 'appointments'
+                });
+              }
+            }}
           />
         )}
       </div>

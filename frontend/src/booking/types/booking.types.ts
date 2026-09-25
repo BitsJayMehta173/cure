@@ -80,6 +80,30 @@ export interface AppointmentSummary {
   patientName: string;
 }
 
+/** Referral item shown as a special card in the appointments list */
+export interface ReferralSummary {
+  referralId: number;
+  referralType: 'FULL_PATIENT' | 'SINGLE_CASE';
+  notes: string;
+  createdAt: string;
+  patientId: number;
+  patientName: string;
+  referredByDoctorName: string;
+  referredByDoctorQual: string;
+  referredByHospital: string;
+  referredByDept: string;
+  referredToDoctorId?: number;
+  referredToDoctorName: string;
+  referredToDoctorQual: string;
+  referredToHospitalId?: number;
+  referredToHospital: string;
+  referredToDeptId?: number;
+  referredToDept: string;
+  sourceAppointmentId?: number;
+  sourceAppointmentDate?: string;
+  referralStatus: 'pending' | 'analysed';
+}
+
 export type BookingStep =
   | 'profiles'
   | 'states'

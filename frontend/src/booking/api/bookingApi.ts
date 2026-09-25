@@ -7,6 +7,7 @@ import type {
   AvailableDoctor,
   BookingConfirmation,
   AppointmentSummary,
+  ReferralSummary,
   DoctorSearchResult,
   DoctorProfile
 } from '../types/booking.types';
@@ -151,6 +152,14 @@ export const bookingApi = {
   removeAppointment: async (id: number): Promise<void> => {
     const res = await fetch(`${API_BASE}/appointments/${id}/remove`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to remove appointment');
+  },
+
+  getReferrals: async (): Promise<ReferralSummary[]> => {
+    const userId = getCurrentUserId();
+    if (!userId) return [];
+    const res = await fetch(`${API_BASE}/referrals?userId=${userId}`);
+    if (!res.ok) return [];
+    return res.json();
   },
 
   // ─── Doctor Directory ────────────────────────────────────────────────

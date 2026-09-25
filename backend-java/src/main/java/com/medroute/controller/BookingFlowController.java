@@ -1,6 +1,10 @@
 package com.medroute.controller;
 
 import com.medroute.dto.*;
+import com.medroute.entity.Patient;
+import com.medroute.entity.Referral;
+import com.medroute.repository.PatientRepository;
+import com.medroute.repository.ReferralRepository;
 import com.medroute.service.BookingFlowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +33,88 @@ public class BookingFlowController {
 
     @Autowired
     private BookingFlowService bookingService;
+
+    @Autowired
+    private PatientRepository patientRepository;
+
+    @Autowired
+    private ReferralRepository referralRepository;
+
+    /**
+     * GET /api/booking/referrals?userId=
+     * Returns referral summaries for all patients belonging to this user.
+     * These are shown as special "referred" cards in the appointments list.
+     */
+    @GetMapping("/referrals")
+    public ResponseEntity<List<Map<String, Object>>> getReferralsForUser(@RequestParam Long userId) {
+        List<Patient> patients = patientRepository.findByUserAccountIdOrderByIdDesc(userId);
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (Patient patient : patients) {
+            List<Referral> referrals = referralRepository.findByPatientId(patient.getId());
+            for (Referral ref : referrals) {
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("referralId", ref.getId());
+                map.put("referralType", ref.getReferralType());
+                map.put("notes", ref.getNotes() != null ? ref.getNotes() : "");
+                map.put("createdAt", ref.getCreatedAt() != null ? ref.getCreatedAt().toLocalDate().toString() : "");
+
+                // Patient
+                map.put("patientId", patient.getId());
+                map.put("patientName", patient.getFullName());
+
+                // Referring doctor
+                if (ref.getReferredByDoctor() != null) {
+                    map.put("referredByDoctorName", ref.getReferredByDoctor().getDoctorName());
+                    map.put("referredByDoctorQual", ref.getReferredByDoctor().getQualification() != null
+                            ? ref.getReferredByDoctor().getQualification() : "");
+                    String byHosp = "";
+                    if (ref.getReferredByDoctor().getDepartment() != null
+                            && ref.getReferredByDoctor().getDepartment().getHospital() != null) {
+                        byHosp = ref.getReferredByDoctor().getDepartment().getHospital().getName();
+                    }
+                    map.put("referredByHospital", byHosp);
+                    String byDept = "";
+                    if (ref.getReferredByDoctor().getDepartment() != null) {
+                        byDept = ref.getReferredByDoctor().getDepartment().getDepartmentName();
+                    }
+                    map.put("referredByDept", byDept);
+                }
+
+                // Referred-to doctor
+                if (ref.getReferredToDoctor() != null) {
+                    map.put("referredToDoctorId", ref.getReferredToDoctor().getId());
+                    map.put("referredToDoctorName", ref.getReferredToDoctor().getDoctorName());
+                    map.put("referredToDoctorQual", ref.getReferredToDoctor().getQualification() != null
+                            ? ref.getReferredToDoctor().getQualification() : "");
+                    String toHosp = "";
+                    String toDept = "";
+                    if (ref.getReferredToDoctor().getDepartment() != null) {
+                        map.put("referredToDeptId", ref.getReferredToDoctor().getDepartment().getId());
+                        toDept = ref.getReferredToDoctor().getDepartment().getDepartmentName();
+                        if (ref.getReferredToDoctor().getDepartment().getHospital() != null) {
+                            map.put("referredToHospitalId", ref.getReferredToDoctor().getDepartment().getHospital().getId());
+                            toHosp = ref.getReferredToDoctor().getDepartment().getHospital().getName();
+                        }
+                    }
+                    map.put("referredToHospital", toHosp);
+                    map.put("referredToDept", toDept);
+                }
+
+                // Linked appointment (from original booking, if SINGLE_CASE)
+                if (ref.getAppointment() != null) {
+                    map.put("sourceAppointmentId", ref.getAppointment().getId());
+                    map.put("sourceAppointmentDate", ref.getAppointment().getDateStr());
+                }
+
+                // Status
+                map.put("referralStatus", ref.getReferralStatus() != null ? ref.getReferralStatus() : "pending");
+
+                result.add(map);
+            }
+        }
+        return ResponseEntity.ok(result);
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // PROFILES
