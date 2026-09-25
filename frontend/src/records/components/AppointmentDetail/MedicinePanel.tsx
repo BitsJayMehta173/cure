@@ -36,9 +36,16 @@ export const MedicinePanel: React.FC<MedicinePanelProps> = ({ appointmentId }) =
     <div className="medicine-list">
       {medicines.map(m => (
         <div key={m.id} className="medicine-card">
-          <div className="medicine-card-top">
-            <h4>💊 {m.medicineName}</h4>
-            {m.dosage && <span className="medicine-dosage">{m.dosage}</span>}
+          <div className="medicine-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h4>💊 {m.medicineName}</h4>
+              {m.dosage && <span className="medicine-dosage">{m.dosage}</span>}
+            </div>
+            {m.authorName && (
+              <div style={{ fontSize: '11px', color: 'var(--color-primary, #00766c)', fontStyle: 'italic', fontWeight: 600 }}>
+                👤 {m.authorName}
+              </div>
+            )}
           </div>
           <div className="medicine-meta-grid">
             {m.frequency && (

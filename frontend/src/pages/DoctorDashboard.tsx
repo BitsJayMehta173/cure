@@ -48,6 +48,8 @@ interface DoctorAppointment {
   hospitalName: string;
   departmentName: string;
   doctorName: string;
+  hospitalId?: number;
+  departmentId?: number;
   patientAge?: number;
   patientGender?: string;
   patientBloodGroup?: string;
@@ -630,7 +632,8 @@ interface DoctorAptDetailProps {
 const STEPS = ['Scheduled', 'Confirmed', 'Completed'] as const;
 
 const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId, onBack }) => {
-  const [tab, setTab] = useState<'status' | 'reports' | 'prescriptions' | 'advice' | 'refer'>('status');
+  const { user } = useAuth();
+  const [tab, setTab] = useState<'status' | 'reports' | 'prescriptions' | 'advice' | 'refer' | 'finalize'>('status');
   const [advice, setAdvice] = useState(appointment.generalAdvice || '');
   const [savingAdvice, setSavingAdvice] = useState(false);
   const [adviceSaved, setAdviceSaved] = useState(false);
@@ -644,6 +647,9 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
   const [newReport, setNewReport] = useState({ title: '', textContent: '', reportType: 'text' });
 
   const [isReferralOpen, setIsReferralOpen] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [finalizing, setFinalizing] = useState(false);
+  const [finalizeMessage, setFinalizeMessage] = useState('');
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
   const isCancelled = appointment.status === 'cancelled';
@@ -681,7 +687,7 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
     try {
       await fetch(`${API_BASE}/api/records/medicines`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newMed, appointmentId: appointment.id })
+        body: JSON.stringify({ ...newMed, appointmentId: appointment.id, authorName: user?.fullName || 'Doctor' })
       });
       setNewMed({ medicineName: '', dosage: '', frequency: '', duration: '', instructions: '' });
       loadMedicines();
@@ -696,7 +702,7 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
     try {
       await fetch(`${API_BASE}/api/records/reports`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newReport, appointmentId: appointment.id })
+        body: JSON.stringify({ ...newReport, appointmentId: appointment.id, authorName: user?.fullName || 'Doctor' })
       });
       setNewReport({ title: '', textContent: '', reportType: 'text' });
       loadReports();
@@ -717,6 +723,68 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
     } finally { setSavingAdvice(false); }
   };
 
+  const handleCompleteAppointment = async () => {
+    setFinalizing(true);
+    try {
+      await fetch(`${API_BASE}/api/doctor-portal/appointments/${appointment.id}/complete`, { method: 'POST' });
+      setFinalizeMessage('✅ Appointment marked as completed.');
+      setTimeout(() => setFinalizeMessage(''), 3000);
+      onBack();
+    } catch (e) {
+      console.error(e);
+      setFinalizeMessage('❌ Error completing appointment.');
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
+  const handleScheduleFollowup = async () => {
+    setFinalizing(true);
+    try {
+      // Create a self-referral so the patient sees the follow-up in their portal
+      const res = await fetch(`${API_BASE}/api/doctor-portal/referrals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: appointment.patientFk,
+          referredByDoctorId: doctorId,
+          referredToDoctorId: doctorId,
+          appointmentId: appointment.id,
+          referralType: 'SINGLE_CASE',
+          notes: 'Follow-up requested by doctor.'
+        })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        if (!(data.error && data.error.includes("already been referred"))) {
+          throw new Error(data.error);
+        }
+      }
+      
+      // If the doctor picked a follow-up date, book it directly
+      if (followUpDate) {
+        const bookRes = await fetch(`${API_BASE}/api/booking/confirm?profileId=${appointment.patientFk}&hospitalId=${appointment.hospitalId || 1}&deptId=${appointment.departmentId || 1}&date=${followUpDate}&doctorId=${doctorId}`, {
+          method: 'POST'
+        });
+        if (!bookRes.ok) throw new Error('Failed to book follow-up appointment.');
+      }
+      // If no date, the patient can pick a date from their portal
+
+      await fetch(`${API_BASE}/api/doctor-portal/appointments/${appointment.id}/complete`, { method: 'POST' });
+      setFinalizeMessage('✅ Follow-up requested and appointment completed.');
+      setTimeout(() => {
+        setFinalizeMessage('');
+        onBack();
+      }, 2000);
+    } catch (e: any) {
+      console.error(e);
+      setFinalizeMessage('❌ ' + (e.message || 'Error scheduling follow-up.'));
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
   return (
     <div className="dd-apt-detail">
       <button className="dd-back-btn" onClick={onBack}>← Back to Appointments</button>
@@ -730,6 +798,7 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
             { key: 'prescriptions', label: 'Prescriptions', icon: '💊' },
             { key: 'advice', label: 'General Advice', icon: '📝' },
             { key: 'refer', label: 'Refer Case', icon: '🔄' },
+            { key: 'finalize', label: 'Finalize', icon: '✅' },
           ].map(item => (
             <button
               key={item.key}
@@ -917,6 +986,59 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
                   appointmentId={appointment.id}
                   onClose={() => setIsReferralOpen(false)}
                 />
+              )}
+            </div>
+          )}
+
+          {tab === 'finalize' && (
+            <div className="dd-advice-panel">
+              <h3>✅ Finalize Appointment</h3>
+              <p className="dd-advice-subtitle">
+                Mark this appointment as completed and optionally schedule a follow-up.
+              </p>
+
+              <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
+                <div style={{ flex: 1, padding: '20px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                  <h4>Complete Only</h4>
+                  <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+                    Mark this appointment as complete. No follow-up needed.
+                  </p>
+                  <button className="doc-btn-primary" onClick={handleCompleteAppointment} disabled={finalizing} style={{ width: '100%', background: '#4caf50' }}>
+                    {finalizing ? 'Processing...' : 'Complete Appointment'}
+                  </button>
+                </div>
+
+                <div style={{ flex: 1, padding: '20px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                  <h4>Complete & Request Follow-up</h4>
+                  <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+                    Request a follow-up for this patient.
+                  </p>
+                  
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Follow-up Date (Optional)</label>
+                    <input 
+                      type="date" 
+                      min={new Date().toISOString().split('T')[0]}
+                      value={followUpDate} 
+                      onChange={e => setFollowUpDate(e.target.value)}
+                      className="dd-advice-textarea" 
+                      style={{ minHeight: '40px', padding: '8px' }}
+                    />
+                    <p style={{ fontSize: '12px', color: '#999', marginTop: '6px' }}>
+                      If left blank, the patient can choose a date from their portal.
+                    </p>
+                  </div>
+
+                  <button className="doc-btn-primary" onClick={handleScheduleFollowup} disabled={finalizing} style={{ width: '100%' }}>
+                    {finalizing ? 'Processing...' : (followUpDate ? 'Book Follow-up' : 'Request Follow-up')}
+                  </button>
+                </div>
+              </div>
+
+              {finalizeMessage && (
+                <div style={{ marginTop: '20px', padding: '12px', background: '#f5f5f5', borderRadius: '6px', textAlign: 'center', fontWeight: 500 }}>
+                  {finalizeMessage}
+                </div>
               )}
             </div>
           )}

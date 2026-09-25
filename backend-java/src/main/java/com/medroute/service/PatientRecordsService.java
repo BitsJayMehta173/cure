@@ -125,6 +125,7 @@ public class PatientRecordsService {
         dto.setTextContent(r.getTextContent());
         dto.setFileUrl(r.getFileUrl());
         dto.setReportDate(r.getReportDate());
+        dto.setAuthorName(r.getAuthorName());
         return dto;
     }
 
@@ -137,6 +138,7 @@ public class PatientRecordsService {
         dto.setDuration(p.getDuration());
         dto.setInstructions(p.getInstructions());
         dto.setPrescribedDate(p.getPrescribedDate());
+        dto.setAuthorName(p.getAuthorName());
         return dto;
     }
 }

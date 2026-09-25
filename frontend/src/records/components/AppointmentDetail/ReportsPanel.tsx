@@ -39,7 +39,10 @@ export const ReportsPanel: React.FC<ReportsPanelProps> = ({ appointmentId }) => 
         <div key={r.id} className="report-slide">
           <div className="report-slide-header">
             <h4>{r.title}</h4>
-            <span className="report-slide-date">{r.reportDate}</span>
+            <div className="report-slide-meta">
+              <span className="report-slide-date">{r.reportDate}</span>
+              {r.authorName && <span className="report-slide-author" style={{ marginLeft: '12px', fontStyle: 'italic', color: 'var(--color-primary, #00766c)' }}>👤 {r.authorName}</span>}
+            </div>
           </div>
           {r.reportType === 'image' && r.fileUrl ? (
             <img className="report-slide-image" src={r.fileUrl} alt={r.title} />

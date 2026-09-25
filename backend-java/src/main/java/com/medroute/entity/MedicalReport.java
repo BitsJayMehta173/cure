@@ -42,6 +42,9 @@ public class MedicalReport {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "author_name")
+    private String authorName;
+
     public MedicalReport() {
         this.createdAt = LocalDateTime.now();
     }
@@ -62,4 +65,6 @@ public class MedicalReport {
     public void setReportDate(LocalDate reportDate) { this.reportDate = reportDate; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getAuthorName() { return authorName; }
+    public void setAuthorName(String authorName) { this.authorName = authorName; }
 }

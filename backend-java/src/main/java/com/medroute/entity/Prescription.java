@@ -31,6 +31,9 @@ public class Prescription {
     @Column(name = "prescribed_date", nullable = false)
     private LocalDate prescribedDate;
 
+    @Column(name = "author_name")
+    private String authorName;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getAppointmentId() { return appointmentId; }
@@ -47,4 +50,6 @@ public class Prescription {
     public void setInstructions(String instructions) { this.instructions = instructions; }
     public LocalDate getPrescribedDate() { return prescribedDate; }
     public void setPrescribedDate(LocalDate prescribedDate) { this.prescribedDate = prescribedDate; }
+    public String getAuthorName() { return authorName; }
+    public void setAuthorName(String authorName) { this.authorName = authorName; }
 }

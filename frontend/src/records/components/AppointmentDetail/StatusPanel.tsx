@@ -112,9 +112,22 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ appointment }) => {
             <span className="status-ref-label">Referral Status</span>
             <span className={`status-ref-value ${referral.referralStatus}`}>
               <span className={`status-ref-dot ${referral.referralStatus}`} />
-              {referral.referralStatus === 'pending' ? '⏳ Pending Review' : '✅ Available'}
+              {referral.referralStatus === 'pending' ? '⏳ Pending Review' : referral.referralStatus === 'analysed' ? '✅ Analysed' : '📅 Booked'}
             </span>
           </div>
+          {referral.referralStatus === 'analysed' && (
+            <div style={{ marginTop: '12px', textAlign: 'right' }}>
+              <button 
+                className="refer-primary-btn" 
+                style={{ padding: '6px 16px', fontSize: '13px' }}
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('nav-to-booking', { detail: { referral } }));
+                }}
+              >
+                Schedule Follow-up Appointment
+              </button>
+            </div>
+          )}
           {referral.notes && <div className="status-ref-notes">📝 {referral.notes}</div>}
         </div>
       )}

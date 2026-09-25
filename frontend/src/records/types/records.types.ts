@@ -16,6 +16,7 @@ export interface MedicalReport {
   textContent: string | null;
   fileUrl: string | null;
   reportDate: string; // YYYY-MM-DD
+  authorName?: string;
 }
 
 /** A single prescribed medicine entry attached to an appointment. */
@@ -27,6 +28,7 @@ export interface Prescription {
   duration: string | null;
   instructions: string | null;
   prescribedDate: string; // YYYY-MM-DD
+  authorName?: string;
 }
 
 export type RecordsStep = 'chooser' | 'gallery' | 'detail';

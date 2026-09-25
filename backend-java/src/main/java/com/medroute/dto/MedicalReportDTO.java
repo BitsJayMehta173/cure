@@ -9,6 +9,7 @@ public class MedicalReportDTO {
     private String textContent;
     private String fileUrl;
     private LocalDate reportDate;
+    private String authorName;
 
     public MedicalReportDTO() {}
 
@@ -24,4 +25,6 @@ public class MedicalReportDTO {
     public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
     public LocalDate getReportDate() { return reportDate; }
     public void setReportDate(LocalDate reportDate) { this.reportDate = reportDate; }
+    public String getAuthorName() { return authorName; }
+    public void setAuthorName(String authorName) { this.authorName = authorName; }
 }

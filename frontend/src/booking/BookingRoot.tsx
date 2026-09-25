@@ -62,6 +62,24 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
 
   // Re-initialize when doctor mode entry changes
   useEffect(() => {
+    const handleNavToBooking = (e: any) => {
+      const { referral } = e.detail;
+      setActiveReferralId(referral.id);
+      setLockedProfileId(referral.patientId);
+      updateState({
+        currentStep: 'calendar',
+        selectedProfileId: referral.patientId,
+        selectedState: null,
+        selectedHospitalId: null,
+        selectedDepartmentId: null,
+        selectedDoctorId: referral.referredToDoctorId,
+      });
+    };
+    window.addEventListener('nav-to-booking', handleNavToBooking);
+    return () => window.removeEventListener('nav-to-booking', handleNavToBooking);
+  }, []);
+
+  useEffect(() => {
     if (doctorMode && doctorInfo) {
       setState(getInitialState());
     }

@@ -10,6 +10,7 @@ public class PrescriptionDTO {
     private String duration;
     private String instructions;
     private LocalDate prescribedDate;
+    private String authorName;
 
     public PrescriptionDTO() {}
 
@@ -27,4 +28,6 @@ public class PrescriptionDTO {
     public void setInstructions(String instructions) { this.instructions = instructions; }
     public LocalDate getPrescribedDate() { return prescribedDate; }
     public void setPrescribedDate(LocalDate prescribedDate) { this.prescribedDate = prescribedDate; }
+    public String getAuthorName() { return authorName; }
+    public void setAuthorName(String authorName) { this.authorName = authorName; }
 }

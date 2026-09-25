@@ -167,6 +167,8 @@ public class DoctorPortalController {
             map.put("hospitalName", hospName);
             map.put("departmentName", deptName);
             map.put("doctorName", a.getDoctor() != null ? a.getDoctor().getDoctorName() : "");
+            map.put("hospitalId", a.getHospitalId());
+            map.put("departmentId", a.getDepartmentId());
 
             // Patient info if linked
             if (a.getPatientFk() != null) {
@@ -226,6 +228,8 @@ public class DoctorPortalController {
             map.put("hospitalName", hospName);
             map.put("departmentName", deptName);
             map.put("doctorName", a.getDoctor() != null ? a.getDoctor().getDoctorName() : "");
+            map.put("hospitalId", a.getHospitalId());
+            map.put("departmentId", a.getDepartmentId());
 
             if (a.getPatientFk() != null) {
                 patientRepository.findById(a.getPatientFk()).ifPresent(p -> {
@@ -248,6 +252,19 @@ public class DoctorPortalController {
         return appointmentRepository.findById(id)
                 .map(a -> ResponseEntity.ok(Map.of("advice", a.getGeneralAdvice() != null ? a.getGeneralAdvice() : "")))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * POST /api/doctor-portal/appointments/{id}/complete
+     * Marks an appointment as completed.
+     */
+    @PostMapping("/appointments/{id}/complete")
+    public ResponseEntity<?> completeAppointment(@PathVariable Long id) {
+        return appointmentRepository.findById(id).map(a -> {
+            a.setStatus("completed");
+            appointmentRepository.save(a);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Appointment marked as completed"));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -430,6 +447,10 @@ public class DoctorPortalController {
             referral.setReferredToDoctor(toDoctor.get());
             referral.setNotes(notes);
             referral.setReferralType(referralType);
+            
+            if (byDoctor.get().getId().equals(toDoctor.get().getId())) {
+                referral.setReferralStatus("analysed");
+            }
             
             if (appointmentId != null) {
                 appointmentRepository.findById(appointmentId).ifPresent(a -> {
