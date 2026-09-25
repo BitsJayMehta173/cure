@@ -20,21 +20,25 @@ interface CalendarStepProps {
    * Used by the Doctor Directory "Book Appointment" flow.
    */
   doctorId?: number;
-  onBookingSuccess: () => void;
+  /**
+   * When set (referral flow), the patient is locked to this profile ID —
+   * the patient picker in the confirm modal is hidden entirely.
+   */
+  lockedProfileId?: number;
+  onBookingSuccess: (bookedProfileId?: number, appointmentId?: number) => void;
   onBack: () => void;
 }
 
 export const CalendarStep: React.FC<CalendarStepProps> = ({
   hospitalId, deptId, profileId, stateName,
-  doctorId, onBookingSuccess, onBack
+  doctorId, lockedProfileId, onBookingSuccess, onBack
 }) => {
   const [slots, setSlots] = useState<SlotAvailability[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Use current month for simple MVP
-  const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+  const currentMonth = new Date().toISOString().substring(0, 7);
 
   useEffect(() => {
     loadSlots();
@@ -58,10 +62,17 @@ export const CalendarStep: React.FC<CalendarStepProps> = ({
     }
   };
 
+  // Determine effective profile and mode:
+  // - lockedProfileId: referral flow — patient locked, doctor auto-assigned from doctorId
+  // - doctorId (no lock): directory flow — patient picker shown
+  // - neither: wizard flow — profile pre-selected, doctor picker shown
+  const effectiveProfileId = lockedProfileId ?? profileId;
+  const modalMode = (doctorId && !lockedProfileId) ? 'patient-select' : 'doctor-select';
+
   return (
     <div className="calendar-step">
       <button className="back-link" onClick={onBack}>
-        {doctorId ? '← Back to Profile' : '← Back to Departments'}
+        {lockedProfileId ? '← Back to Appointments' : doctorId ? '← Back to Profile' : '← Back to Departments'}
       </button>
 
       <div className="calendar-header">
@@ -106,11 +117,12 @@ export const CalendarStep: React.FC<CalendarStepProps> = ({
         <ConfirmModal
           hospitalId={hospitalId}
           deptId={deptId}
-          profileId={profileId}
+          profileId={effectiveProfileId}
           stateName={stateName}
           date={selectedDate}
-          mode={doctorId ? 'patient-select' : 'doctor-select'}
+          mode={modalMode}
           defaultDoctorId={doctorId}
+          lockedProfileId={lockedProfileId}
           onClose={() => setShowConfirmModal(false)}
           onSuccess={onBookingSuccess}
         />

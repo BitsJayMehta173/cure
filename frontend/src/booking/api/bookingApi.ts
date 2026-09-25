@@ -162,6 +162,12 @@ export const bookingApi = {
     return res.json();
   },
 
+  linkReferralAppointment: async (referralId: number, appointmentId: number): Promise<void> => {
+    await fetch(`${API_BASE}/referrals/${referralId}/link-appointment?appointmentId=${appointmentId}`, {
+      method: 'POST'
+    });
+  },
+
   // ─── Doctor Directory ────────────────────────────────────────────────
   /**
    * Real-time fuzzy search for doctors by name.

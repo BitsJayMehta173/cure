@@ -27,6 +27,11 @@ public class Referral {
     @JoinColumn(name = "appointment_id")
     private Appointment appointment;
 
+    /** The follow-up appointment booked by the patient after the referral is analysed. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "follow_up_appointment_id")
+    private Appointment followUpAppointment;
+
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
@@ -34,7 +39,7 @@ public class Referral {
     private String referralType = "FULL_PATIENT"; // FULL_PATIENT or SINGLE_CASE
 
     @Column(name = "referral_status", nullable = false)
-    private String referralStatus = "pending"; // pending or analysed
+    private String referralStatus = "pending"; // pending, analysed, booked
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -53,6 +58,8 @@ public class Referral {
     public void setReferredToDoctor(Doctor referredToDoctor) { this.referredToDoctor = referredToDoctor; }
     public Appointment getAppointment() { return appointment; }
     public void setAppointment(Appointment appointment) { this.appointment = appointment; }
+    public Appointment getFollowUpAppointment() { return followUpAppointment; }
+    public void setFollowUpAppointment(Appointment followUpAppointment) { this.followUpAppointment = followUpAppointment; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
     public String getReferralType() { return referralType; }

@@ -101,7 +101,12 @@ export interface ReferralSummary {
   referredToDept: string;
   sourceAppointmentId?: number;
   sourceAppointmentDate?: string;
-  referralStatus: 'pending' | 'analysed';
+  referralStatus: 'pending' | 'analysed' | 'booked';
+  // Set once patient books the follow-up appointment
+  followUpAppointmentId?: number;
+  followUpDate?: string;
+  followUpTokenNumber?: number;
+  followUpExpectedTime?: string;
 }
 
 export type BookingStep =

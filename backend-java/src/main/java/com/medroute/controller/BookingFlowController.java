@@ -3,6 +3,7 @@ package com.medroute.controller;
 import com.medroute.dto.*;
 import com.medroute.entity.Patient;
 import com.medroute.entity.Referral;
+import com.medroute.repository.AppointmentRepository;
 import com.medroute.repository.PatientRepository;
 import com.medroute.repository.ReferralRepository;
 import com.medroute.service.BookingFlowService;
@@ -39,6 +40,9 @@ public class BookingFlowController {
 
     @Autowired
     private ReferralRepository referralRepository;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
 
     /**
      * GET /api/booking/referrals?userId=
@@ -107,6 +111,23 @@ public class BookingFlowController {
                     map.put("sourceAppointmentDate", ref.getAppointment().getDateStr());
                 }
 
+                // Follow-up appointment (booked by patient after analysis)
+                if (ref.getFollowUpAppointment() != null) {
+                    var fu = ref.getFollowUpAppointment();
+                    map.put("followUpAppointmentId", fu.getId());
+                    map.put("followUpDate", fu.getDateStr() != null ? fu.getDateStr() : "");
+                    map.put("followUpTokenNumber", fu.getTokenNum() != null ? fu.getTokenNum() : 0);
+                    // Compute expected time from queue position
+                    if (fu.getDoctor() != null && fu.getTokenNum() != null) {
+                        int avgMins = fu.getDoctor().getAvgMinutesPerPatient() != null ? fu.getDoctor().getAvgMinutesPerPatient() : 15;
+                        java.time.LocalTime t = java.time.LocalTime.of(9, 0).plusMinutes((long)(fu.getTokenNum() - 1) * avgMins);
+                        int h = t.getHour(); int m = t.getMinute();
+                        String ap = h >= 12 ? "PM" : "AM";
+                        int dh = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+                        map.put("followUpExpectedTime", String.format("%02d:%02d %s", dh, m, ap));
+                    }
+                }
+
                 // Status
                 map.put("referralStatus", ref.getReferralStatus() != null ? ref.getReferralStatus() : "pending");
 
@@ -114,6 +135,25 @@ public class BookingFlowController {
             }
         }
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * POST /api/booking/referrals/{id}/link-appointment?appointmentId=
+     * Links a newly booked follow-up appointment to the referral, and updates
+     * the referral status to "booked".
+     */
+    @PostMapping("/referrals/{id}/link-appointment")
+    public ResponseEntity<?> linkFollowUpAppointment(
+            @PathVariable Long id,
+            @RequestParam Long appointmentId) {
+        return referralRepository.findById(id).map(ref -> {
+            appointmentRepository.findById(appointmentId).ifPresent(appt -> {
+                ref.setFollowUpAppointment(appt);
+                ref.setReferralStatus("booked");
+                referralRepository.save(ref);
+            });
+            return ResponseEntity.ok(Map.of("success", true));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

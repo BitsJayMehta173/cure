@@ -76,9 +76,10 @@ const ReferralCard: React.FC<{ ref_: ReferralSummary; onScheduleFollowUp?: (ref:
           <span className="referral-status-label">Referral Status</span>
           <span className={`referral-status-value ${status}`}>
             <span className={`referral-status-dot ${status}`} />
-            {status === 'pending' ? '⏳ Pending Review' : '✅ Analysed'}
+            {status === 'pending' ? '⏳ Pending Review' : status === 'analysed' ? '✅ Analysed' : '📅 Appointment Booked'}
           </span>
         </div>
+        
         {status === 'analysed' && onScheduleFollowUp && (
           <button 
             className="refer-primary-btn" 
@@ -87,6 +88,15 @@ const ReferralCard: React.FC<{ ref_: ReferralSummary; onScheduleFollowUp?: (ref:
           >
             Schedule Appointment
           </button>
+        )}
+        
+        {status === 'booked' && (
+          <div className="follow-up-info" style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{ref_.followUpDate}</div>
+            <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
+              Token: {ref_.followUpTokenNumber} • {ref_.followUpExpectedTime}
+            </div>
+          </div>
         )}
       </div>
 
@@ -196,7 +206,9 @@ export const AppointmentsList: React.FC<AppointmentsListProps> = ({ profileId, i
       ) : (
         <div className="apt-grid">
           {/* Regular appointment cards */}
-          {appointments.map(apt => {
+          {appointments
+            .filter(apt => !referrals.some(r => r.followUpAppointmentId === apt.id))
+            .map(apt => {
             const isReferred = referrals.some(r => r.sourceAppointmentId === apt.id);
             const isPastVisit = new Date(apt.date) < new Date(new Date().toDateString());
             const isCompleted = apt.status === 'completed' || isPastVisit || isReferred;

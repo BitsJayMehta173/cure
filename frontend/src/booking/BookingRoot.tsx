@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './BookingRoot.css';
-import type { BookingWizardState, DoctorProfile } from './types/booking.types';
+import type { BookingWizardState, DoctorProfile, ReferralSummary } from './types/booking.types';
+import { bookingApi } from './api/bookingApi';
 import { Breadcrumb } from './components/Breadcrumb/Breadcrumb';
 import { ProfileStep } from './components/Profile/ProfileStep';
 import { StateStep } from './components/StateSelect/StateStep';
@@ -30,11 +31,9 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
   // Build the initial state depending on entry mode
   const getInitialState = (): BookingWizardState & { previousStep?: string; pendingProfileId?: number } => {
     if (doctorMode && doctorInfo) {
-      // Doctor Directory entry — go DIRECTLY to calendar with all IDs pre-filled.
-      // Patient selection happens inline at the top of the calendar step.
       return {
         currentStep: 'calendar',
-        selectedProfileId: null, // picked inline in CalendarStep
+        selectedProfileId: null,
         selectedState: doctorInfo.hospitalState,
         selectedHospitalId: doctorInfo.hospitalId,
         selectedDepartmentId: doctorInfo.departmentId,
@@ -56,16 +55,18 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
     getInitialState()
   );
 
-  // Re-initialize when doctor mode entry changes (different doctor clicked from directory)
+  // Track which referral this calendar session is for (null = normal booking)
+  const [activeReferralId, setActiveReferralId] = useState<number | null>(null);
+  // Lock the patient profile when coming from a referral (prevents picker)
+  const [lockedProfileId, setLockedProfileId] = useState<number | null>(null);
+
+  // Re-initialize when doctor mode entry changes
   useEffect(() => {
     if (doctorMode && doctorInfo) {
       setState(getInitialState());
     }
   }, [doctorInfo?.id]);
 
-  // After profile is selected in doctor mode, jump straight to calendar.
-  // (No longer needed in the simplified flow — we already start on 'calendar' — but
-  // kept as a safety net in case state somehow reverts to 'profiles'.)
   useEffect(() => {
     if (doctorMode && doctorInfo && state.currentStep === 'profiles') {
       setState(prev => ({ ...prev, currentStep: 'calendar' }));
@@ -78,7 +79,6 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
 
   const handleProfileSelect = (id: number) => {
     if (doctorMode && doctorInfo) {
-      // In doctor mode, after selecting a profile go directly to calendar
       updateState({ selectedProfileId: id, currentStep: 'calendar' });
     } else {
       updateState({ selectedProfileId: id, currentStep: 'states' });
@@ -86,6 +86,8 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
   };
 
   const handleViewAllAppointments = () => {
+    setActiveReferralId(null);
+    setLockedProfileId(null);
     updateState({
       selectedProfileId: null,
       currentStep: 'appointments',
@@ -105,7 +107,17 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
     updateState({ selectedDepartmentId: deptId, currentStep: 'calendar' });
   };
 
-  const handleBookingSuccess = (bookedProfileId?: number) => {
+  const handleBookingSuccess = async (bookedProfileId?: number, bookedAppointmentId?: number) => {
+    // If this booking was for a referral, link it in the backend
+    if (activeReferralId && bookedAppointmentId) {
+      try {
+        await bookingApi.linkReferralAppointment(activeReferralId, bookedAppointmentId);
+      } catch (e) {
+        console.error('Failed to link appointment to referral:', e);
+      }
+    }
+    setActiveReferralId(null);
+    setLockedProfileId(null);
     updateState({
       currentStep: 'appointments',
       pendingProfileId: bookedProfileId ?? state.pendingProfileId
@@ -113,8 +125,9 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
   };
 
   const handleAppointmentsBack = () => {
+    setActiveReferralId(null);
+    setLockedProfileId(null);
     if (doctorMode && doctorInfo) {
-      // Clear the doctor booking target so App.tsx renders the Doctor Directory tab again
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('medroute:exit-doctor-mode'));
       }
@@ -124,14 +137,20 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
     }
   };
 
-  // Calendar's "back" button — in doctor mode we just exit the booking tab entirely
   const handleCalendarBack = () => {
+    setActiveReferralId(null);
+    setLockedProfileId(null);
     if (doctorMode && doctorInfo) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('medroute:exit-doctor-mode'));
       }
     } else {
-      updateState({ currentStep: 'department' });
+      // If we came from appointments (referral flow), go back there
+      if (state.previousStep === 'appointments') {
+        updateState({ currentStep: 'appointments' });
+      } else {
+        updateState({ currentStep: 'department' });
+      }
     }
   };
 
@@ -183,6 +202,7 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
               profileId={state.selectedProfileId}
               stateName={state.selectedState || ''}
               doctorId={state.selectedDoctorId ?? undefined}
+              lockedProfileId={lockedProfileId ?? undefined}
               onBookingSuccess={handleBookingSuccess}
               onBack={handleCalendarBack}
             />
@@ -193,8 +213,10 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
             profileId={state.selectedProfileId}
             initialProfileId={state.pendingProfileId}
             onBack={handleAppointmentsBack}
-            onScheduleFollowUp={(ref) => {
+            onScheduleFollowUp={(ref: ReferralSummary) => {
               if (ref.referredToHospitalId && ref.referredToDeptId) {
+                setActiveReferralId(ref.referralId);
+                setLockedProfileId(ref.patientId);
                 updateState({
                   currentStep: 'calendar',
                   selectedProfileId: ref.patientId,

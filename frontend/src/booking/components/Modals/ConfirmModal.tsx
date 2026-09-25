@@ -6,35 +6,23 @@ import type { AvailableDoctor, BookingConfirmation, PatientProfile } from '../..
 interface ConfirmModalProps {
   hospitalId: number;
   deptId: number;
-  /**
-   * Pre-selected patient profile. In doctor-select mode (wizard flow), this is
-   * required and the modal books for that patient. In patient-select mode
-   * (Doctor Directory flow), this is null and the user picks a patient inside
-   * the modal.
-   */
   profileId: number | null;
   stateName: string;
   date: string;
-  /**
-   * 'doctor-select' (default) — wizard flow, user picks a doctor from a dropdown
-   * 'patient-select' — directory flow, doctor is pre-selected, user picks a patient
-   */
   mode?: 'doctor-select' | 'patient-select';
-  /**
-   * Pre-select a specific doctor (used in patient-select mode from the directory)
-   */
   defaultDoctorId?: number;
   /**
-   * Called on successful booking. In patient-select mode, the chosen profileId is passed.
-   * The BookingRoot can then auto-navigate to the follow-up page with that profile selected.
+   * When set (referral flow), the patient is fixed and NO patient picker is shown.
+   * The lockedProfileId is used for booking.
    */
-  onSuccess: (bookedProfileId?: number) => void;
+  lockedProfileId?: number;
+  onSuccess: (bookedProfileId?: number, appointmentId?: number) => void;
   onClose: () => void;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   hospitalId, deptId, profileId, stateName, date,
-  mode = 'doctor-select', defaultDoctorId, onSuccess, onClose
+  mode = 'doctor-select', defaultDoctorId, lockedProfileId, onSuccess, onClose
 }) => {
   const [doctors, setDoctors] = useState<AvailableDoctor[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(
@@ -60,7 +48,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     try {
       const list = await bookingApi.getAvailableDoctors(hospitalId, deptId, date, stateName);
       setDoctors(list);
-      if (list.length > 0 && selectedDoctorId === null) {
+      // If a doctor is pre-selected (referral flow), ensure it's in the list or default to first
+      if (defaultDoctorId) {
+        const match = list.find(d => d.doctorId === defaultDoctorId);
+        setSelectedDoctorId(match?.doctorId ?? (list[0]?.doctorId ?? null));
+      } else if (list.length > 0 && selectedDoctorId === null) {
         setSelectedDoctorId(list[0].doctorId);
       }
     } catch (e) {
@@ -72,7 +64,6 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     }
   };
 
-  // Patient-select mode: doctor is fixed, user picks the patient profile.
   const loadForPatientMode = async () => {
     try {
       const [doctorList, profiles] = await Promise.all([
@@ -81,7 +72,6 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       ]);
       setDoctors(doctorList);
       setPatientProfiles(profiles);
-      // Auto-select the default doctor if it appears in the list; otherwise pick first
       if (doctorList.length > 0) {
         const match = defaultDoctorId
           ? doctorList.find(d => d.doctorId === defaultDoctorId)
@@ -100,12 +90,13 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     }
   };
 
-  const selectedDoctor = doctors.find(d => d.doctorId === selectedDoctorId) ?? null;
-  const effectiveProfileId = mode === 'patient-select' ? selectedProfileId : profileId;
+  const effectiveProfileId = lockedProfileId
+    ? lockedProfileId
+    : mode === 'patient-select' ? selectedProfileId : profileId;
 
   const handleConfirm = async () => {
     if (!selectedDoctorId) return;
-    if (mode === 'patient-select' && !selectedProfileId) {
+    if (mode === 'patient-select' && !lockedProfileId && !selectedProfileId) {
       alert('Please select a patient profile.');
       return;
     }
@@ -140,7 +131,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               <p><strong>Date:</strong> {confirmation.date}</p>
               <p><strong>Expected Time:</strong> {confirmation.expectedTimeStr}</p>
             </div>
-            <button className="done-btn" onClick={() => onSuccess(effectiveProfileId ?? undefined)}>View Appointments</button>
+            <button
+              className="done-btn"
+              onClick={() => onSuccess(effectiveProfileId ?? undefined, confirmation.appointmentId)}
+            >
+              View Appointments
+            </button>
           </div>
         ) : loading ? (
           <div className="loading-view">Loading booking details...</div>
@@ -150,12 +146,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <p>No doctors in this department have open slots on {date}.</p>
             <button className="cancel-btn" onClick={onClose}>Back</button>
           </div>
-        ) : selectedDoctor ? (
+        ) : (
           <div className="preview-view">
             <h2>Confirm Appointment</h2>
 
-            {/* Doctor selector — only shown in 'doctor-select' mode */}
-            {mode === 'doctor-select' && (
+            {/* Doctor selector — shown in 'doctor-select' mode only when NOT locked to a specific doctor */}
+            {mode === 'doctor-select' && !lockedProfileId && (
               <>
                 <label className="doctor-select-label" htmlFor="doctor-select">
                   Choose your doctor
@@ -176,8 +172,15 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               </>
             )}
 
-            {/* Patient selector — only shown in 'patient-select' mode (Doctor Directory flow) */}
-            {mode === 'patient-select' && (
+            {/* Referral flow — show locked doctor name as read-only */}
+            {lockedProfileId && doctors.find(d => d.doctorId === selectedDoctorId) && (
+              <div className="doctor-select-label" style={{ marginBottom: 8 }}>
+                Booking with: <strong>{doctors.find(d => d.doctorId === selectedDoctorId)?.doctorName}</strong>
+              </div>
+            )}
+
+            {/* Patient selector — only in 'patient-select' mode when NOT locked */}
+            {mode === 'patient-select' && !lockedProfileId && (
               <>
                 <label className="doctor-select-label" htmlFor="patient-select">
                   Book appointment for
@@ -204,47 +207,60 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               </>
             )}
 
-            <div className="preview-card">
-              <div className="doc-info">
-                <h3>{selectedDoctor.doctorName}</h3>
-                <span>
-                  {selectedDoctor.qualification}
-                  {selectedDoctor.yearsOfExperience ? ` • ${selectedDoctor.yearsOfExperience} yrs exp` : ''}
-                </span>
+            {/* Show who we're booking for when locked (referral) */}
+            {lockedProfileId && (
+              <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 8 }}>
+                📋 Follow-up appointment (patient locked from referral)
               </div>
-              <div className="time-calc">
-                <div className="calc-row">
-                  <span>Your Token Number:</span>
-                  <strong>{selectedDoctor.tokenNumber}</strong>
+            )}
+
+            {(() => {
+              const selectedDoctor = doctors.find(d => d.doctorId === selectedDoctorId) ?? null;
+              if (!selectedDoctor) return null;
+              return (
+                <div className="preview-card">
+                  <div className="doc-info">
+                    <h3>{selectedDoctor.doctorName}</h3>
+                    <span>
+                      {selectedDoctor.qualification}
+                      {selectedDoctor.yearsOfExperience ? ` • ${selectedDoctor.yearsOfExperience} yrs exp` : ''}
+                    </span>
+                  </div>
+                  <div className="time-calc">
+                    <div className="calc-row">
+                      <span>Your Token Number:</span>
+                      <strong>{selectedDoctor.tokenNumber}</strong>
+                    </div>
+                    <div className="calc-row">
+                      <span>Time per patient:</span>
+                      <strong>{selectedDoctor.avgMinutesPerPatient} mins</strong>
+                    </div>
+                    <div className="calc-row">
+                      <span>Remaining slots today:</span>
+                      <strong>{selectedDoctor.remainingSlots}</strong>
+                    </div>
+                    <div className="calc-divider"></div>
+                    <div className="calc-row highlight">
+                      <span>Expected Turn:</span>
+                      <strong>{selectedDoctor.expectedTimeStr}</strong>
+                    </div>
+                  </div>
                 </div>
-                <div className="calc-row">
-                  <span>Time per patient:</span>
-                  <strong>{selectedDoctor.avgMinutesPerPatient} mins</strong>
-                </div>
-                <div className="calc-row">
-                  <span>Remaining slots today:</span>
-                  <strong>{selectedDoctor.remainingSlots}</strong>
-                </div>
-                <div className="calc-divider"></div>
-                <div className="calc-row highlight">
-                  <span>Expected Turn:</span>
-                  <strong>{selectedDoctor.expectedTimeStr}</strong>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             <div className="modal-actions">
               <button className="cancel-btn" onClick={onClose} disabled={booking}>Cancel</button>
               <button
                 className="confirm-btn"
                 onClick={handleConfirm}
-                disabled={booking || (mode === 'patient-select' && !selectedProfileId)}
+                disabled={booking || (mode === 'patient-select' && !lockedProfileId && !selectedProfileId)}
               >
                 {booking ? 'Locking Slot...' : 'Confirm & Book'}
               </button>
             </div>
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
