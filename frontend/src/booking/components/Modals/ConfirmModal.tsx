@@ -11,18 +11,13 @@ interface ConfirmModalProps {
   date: string;
   mode?: 'doctor-select' | 'patient-select';
   defaultDoctorId?: number;
-  /**
-   * When set (referral flow), the patient is fixed and NO patient picker is shown.
-   * The lockedProfileId is used for booking.
-   */
-  lockedProfileId?: number;
   onSuccess: (bookedProfileId?: number, appointmentId?: number) => void;
   onClose: () => void;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   hospitalId, deptId, profileId, stateName, date,
-  mode = 'doctor-select', defaultDoctorId, lockedProfileId, onSuccess, onClose
+  mode = 'doctor-select', defaultDoctorId, onSuccess, onClose
 }) => {
   const [doctors, setDoctors] = useState<AvailableDoctor[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(
@@ -90,13 +85,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     }
   };
 
-  const effectiveProfileId = lockedProfileId
-    ? lockedProfileId
-    : mode === 'patient-select' ? selectedProfileId : profileId;
+  const effectiveProfileId = mode === 'patient-select' ? selectedProfileId : profileId;
 
   const handleConfirm = async () => {
     if (!selectedDoctorId) return;
-    if (mode === 'patient-select' && !lockedProfileId && !selectedProfileId) {
+    if (mode === 'patient-select' && !selectedProfileId) {
       alert('Please select a patient profile.');
       return;
     }
@@ -151,7 +144,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <h2>Confirm Appointment</h2>
 
             {/* Doctor selector — shown in 'doctor-select' mode only when NOT locked to a specific doctor */}
-            {mode === 'doctor-select' && !lockedProfileId && (
+            {mode === 'doctor-select' && (
               <>
                 <label className="doctor-select-label" htmlFor="doctor-select">
                   Choose your doctor
@@ -172,15 +165,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               </>
             )}
 
-            {/* Referral flow — show locked doctor name as read-only */}
-            {lockedProfileId && doctors.find(d => d.doctorId === selectedDoctorId) && (
-              <div className="doctor-select-label" style={{ marginBottom: 8 }}>
-                Booking with: <strong>{doctors.find(d => d.doctorId === selectedDoctorId)?.doctorName}</strong>
-              </div>
-            )}
 
             {/* Patient selector — only in 'patient-select' mode when NOT locked */}
-            {mode === 'patient-select' && !lockedProfileId && (
+            {mode === 'patient-select' && (
               <>
                 <label className="doctor-select-label" htmlFor="patient-select">
                   Book appointment for
@@ -207,12 +194,6 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               </>
             )}
 
-            {/* Show who we're booking for when locked (referral) */}
-            {lockedProfileId && (
-              <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 8 }}>
-                📋 Follow-up appointment (patient locked from referral)
-              </div>
-            )}
 
             {(() => {
               const selectedDoctor = doctors.find(d => d.doctorId === selectedDoctorId) ?? null;
@@ -254,7 +235,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               <button
                 className="confirm-btn"
                 onClick={handleConfirm}
-                disabled={booking || (mode === 'patient-select' && !lockedProfileId && !selectedProfileId)}
+                disabled={booking || (mode === 'patient-select' && !selectedProfileId)}
               >
                 {booking ? 'Locking Slot...' : 'Confirm & Book'}
               </button>

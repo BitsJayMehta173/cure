@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './BookingRoot.css';
-import type { BookingWizardState, DoctorProfile, ReferralSummary } from './types/booking.types';
-import { bookingApi } from './api/bookingApi';
+import type { BookingWizardState, DoctorProfile } from './types/booking.types';
 import { Breadcrumb } from './components/Breadcrumb/Breadcrumb';
 import { ProfileStep } from './components/Profile/ProfileStep';
 import { StateStep } from './components/StateSelect/StateStep';
@@ -55,30 +54,7 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
     getInitialState()
   );
 
-  // Track which referral this calendar session is for (null = normal booking)
-  const [activeReferralId, setActiveReferralId] = useState<number | null>(null);
-  // Lock the patient profile when coming from a referral (prevents picker)
-  const [lockedProfileId, setLockedProfileId] = useState<number | null>(null);
-
   // Re-initialize when doctor mode entry changes
-  useEffect(() => {
-    const handleNavToBooking = (e: any) => {
-      const { referral } = e.detail;
-      setActiveReferralId(referral.id);
-      setLockedProfileId(referral.patientId);
-      updateState({
-        currentStep: 'calendar',
-        selectedProfileId: referral.patientId,
-        selectedState: null,
-        selectedHospitalId: null,
-        selectedDepartmentId: null,
-        selectedDoctorId: referral.referredToDoctorId,
-      });
-    };
-    window.addEventListener('nav-to-booking', handleNavToBooking);
-    return () => window.removeEventListener('nav-to-booking', handleNavToBooking);
-  }, []);
-
   useEffect(() => {
     if (doctorMode && doctorInfo) {
       setState(getInitialState());
@@ -104,8 +80,6 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
   };
 
   const handleViewAllAppointments = () => {
-    setActiveReferralId(null);
-    setLockedProfileId(null);
     updateState({
       selectedProfileId: null,
       currentStep: 'appointments',
@@ -125,17 +99,7 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
     updateState({ selectedDepartmentId: deptId, currentStep: 'calendar' });
   };
 
-  const handleBookingSuccess = async (bookedProfileId?: number, bookedAppointmentId?: number) => {
-    // If this booking was for a referral, link it in the backend
-    if (activeReferralId && bookedAppointmentId) {
-      try {
-        await bookingApi.linkReferralAppointment(activeReferralId, bookedAppointmentId);
-      } catch (e) {
-        console.error('Failed to link appointment to referral:', e);
-      }
-    }
-    setActiveReferralId(null);
-    setLockedProfileId(null);
+  const handleBookingSuccess = (bookedProfileId?: number) => {
     updateState({
       currentStep: 'appointments',
       pendingProfileId: bookedProfileId ?? state.pendingProfileId
@@ -143,8 +107,6 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
   };
 
   const handleAppointmentsBack = () => {
-    setActiveReferralId(null);
-    setLockedProfileId(null);
     if (doctorMode && doctorInfo) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('medroute:exit-doctor-mode'));
@@ -156,19 +118,12 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
   };
 
   const handleCalendarBack = () => {
-    setActiveReferralId(null);
-    setLockedProfileId(null);
     if (doctorMode && doctorInfo) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('medroute:exit-doctor-mode'));
       }
     } else {
-      // If we came from appointments (referral flow), go back there
-      if (state.previousStep === 'appointments') {
-        updateState({ currentStep: 'appointments' });
-      } else {
-        updateState({ currentStep: 'department' });
-      }
+      updateState({ currentStep: 'department' });
     }
   };
 
@@ -220,7 +175,6 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
               profileId={state.selectedProfileId}
               stateName={state.selectedState || ''}
               doctorId={state.selectedDoctorId ?? undefined}
-              lockedProfileId={lockedProfileId ?? undefined}
               onBookingSuccess={handleBookingSuccess}
               onBack={handleCalendarBack}
             />
@@ -231,20 +185,6 @@ export const BookingRoot: React.FC<BookingRootDoctorModeProps> = ({
             profileId={state.selectedProfileId}
             initialProfileId={state.pendingProfileId}
             onBack={handleAppointmentsBack}
-            onScheduleFollowUp={(ref: ReferralSummary) => {
-              if (ref.referredToHospitalId && ref.referredToDeptId) {
-                setActiveReferralId(ref.referralId);
-                setLockedProfileId(ref.patientId);
-                updateState({
-                  currentStep: 'calendar',
-                  selectedProfileId: ref.patientId,
-                  selectedHospitalId: ref.referredToHospitalId,
-                  selectedDepartmentId: ref.referredToDeptId,
-                  selectedDoctorId: ref.referredToDoctorId,
-                  previousStep: 'appointments'
-                });
-              }
-            }}
           />
         )}
       </div>

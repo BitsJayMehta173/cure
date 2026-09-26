@@ -126,6 +126,8 @@
 .status-dot-confirmed { background: #22c55e; }
 .status-dot-cancelled { background: #ef4444; }
 .status-dot-completed { background: #64748b; }
+.status-dot-referred { background: #f97316; }
+.status-dot-feedback_received { background: #3b82f6; }
 
 .gallery-tile h4 {
   margin: 0 20px 4px 0;
@@ -167,6 +169,8 @@
 .gallery-tile-footer .status-confirmed { background: #dcfce7; color: #166534; }
 .gallery-tile-footer .status-cancelled { background: #fee2e2; color: #991b1b; }
 .gallery-tile-footer .status-completed { background: #e2e8f0; color: #334155; }
+.gallery-tile-footer .status-referred { background: #ffedd5; color: #9a3412; }
+.gallery-tile-footer .status-feedback_received { background: #dbeafe; color: #1e40af; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }

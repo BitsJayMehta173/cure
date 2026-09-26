@@ -1,0 +1,122 @@
+/* Shared referral pipeline UI — used by the doctor portal (and the patient app in step 3). */
+
+/* ── Status badge ─────────────────────────────────────────── */
+.rf-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rf-badge.confirmed { background: rgba(0, 135, 121, 0.12); color: #008779; }
+.rf-badge.referred { background: #ffedd5; color: #9a3412; }
+.rf-badge.feedback_received { background: #dbeafe; color: #1e40af; }
+.rf-badge.completed { background: rgba(0, 96, 120, 0.1); color: #006078; }
+.rf-badge.cancelled, .rf-badge.DECLINED, .rf-badge.CANCELLED { background: rgba(220, 53, 69, 0.1); color: #dc3545; }
+.rf-badge.REQUESTED { background: #fef3c7; color: #92400e; }
+.rf-badge.RESPONDED, .rf-badge.ACCEPTED { background: #dbeafe; color: #1e40af; }
+.rf-badge.FOLLOW_UP_BOOKED { background: rgba(0, 135, 121, 0.12); color: #008779; }
+
+/* ── Timeline / stepper ───────────────────────────────────── */
+.rf-timeline { display: flex; align-items: flex-start; margin: 16px 0 20px; }
+.rf-step { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 76px; text-align: center; }
+.rf-step-dot { width: 16px; height: 16px; border-radius: 50%; background: #d1e8ef; }
+.rf-step.done .rf-step-dot { background: #008779; }
+.rf-step.current .rf-step-dot { background: #fff; border: 3px solid #008779; width: 12px; height: 12px; }
+.rf-step-label { font-size: 12px; color: #7a8a99; max-width: 110px; }
+.rf-step.done .rf-step-label, .rf-step.current .rf-step-label { color: #1c2a38; font-weight: 600; }
+.rf-step-line { flex: 1; height: 3px; background: #d1e8ef; margin: 7px 4px 0; }
+.rf-step-line.done { background: #008779; }
+.rf-timeline.compact { margin: 8px 0; }
+.rf-timeline.compact .rf-step { min-width: 56px; }
+.rf-timeline.compact .rf-step-label { font-size: 11px; }
+
+/* ── Referral card ────────────────────────────────────────── */
+.rf-card {
+  border: 1px solid #e3edf2;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rf-card.clickable { cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s; }
+.rf-card.clickable:hover { border-color: #008779; box-shadow: 0 4px 14px rgba(0, 96, 120, 0.08); }
+.rf-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rf-kind { font-size: 12px; font-weight: 700; color: #006078; }
+.rf-kind.TRANSFER { color: #c2410c; }
+.rf-route { font-size: 13px; color: #1c2a38; }
+.rf-route small { display: block; color: #7a8a99; font-size: 12px; }
+.rf-quote {
+  font-size: 13px;
+  color: #334155;
+  background: #f8fafc;
+  border-left: 3px solid #cbd5e1;
+  padding: 6px 10px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+.rf-quote.findings { border-left-color: #2563eb; background: #eff6ff; }
+.rf-meta { font-size: 12px; color: #7a8a99; }
+.rf-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.rf-list { display: flex; flex-direction: column; gap: 12px; }
+.rf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.rf-error { color: #b91c1c; font-size: 13px; }
+.rf-success { color: #047857; font-size: 13px; }
+.rf-filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.rf-filter { border: 1px solid #d1e8ef; background: #fff; border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+.rf-filter.active { background: #008779; border-color: #008779; color: #fff; }
+
+/* ── Slot picker ──────────────────────────────────────────── */
+.rf-slots { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
+.rf-slot { border: 1px solid #ddd; background: #f0f0f0; padding: 8px 4px; text-align: center; border-radius: 6px; opacity: 0.6; cursor: not-allowed; }
+.rf-slot.available { background: #fff; opacity: 1; cursor: pointer; }
+.rf-slot.selected { border: 2px solid #008779; background: #e0f2f1; }
+.rf-slot-day { font-size: 14px; font-weight: 700; color: #333; }
+.rf-slot-name { font-size: 10px; color: #666; }
+.rf-slot-left { font-size: 9px; color: #008779; font-weight: 600; margin-top: 2px; }
+
+/* ── "Referred by" (visit booked from a handover) ─────────── */
+.rf-referred-from {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid #fed7aa;
+  border-left: 4px solid #f97316;
+  border-radius: 10px;
+  background: #fff7ed;
+}
+.rf-referred-from-title { font-size: 12px; font-weight: 800; color: #9a3412; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ── Ownership chip (every case record) ───────────────────── */
+.rf-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #334155;
+}
+.rf-owner-meta { font-weight: 500; color: #64748b; }
+.rf-owner.second_opinion { background: #eff6ff; color: #1e40af; }
+.rf-owner.imported { background: #fff7ed; color: #9a3412; }
+.rf-owner.mine { background: rgba(0, 135, 121, 0.12); color: #006b60; }
+.dd-medicine-card.rf-mine { border-left: 3px solid #008779; }
+.dd-medicine-card.rf-imported { border-left: 3px solid #f97316; }
+.rf-card-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+
+/* ── Workspace (referred doctor) ──────────────────────────── */
+.rf-workspace { display: flex; flex-direction: column; gap: 18px; }
+.rf-panel { border: 1px solid #e3edf2; border-radius: 12px; padding: 18px; background: #fff; }
+.rf-panel h3 { margin: 0 0 10px; font-size: 16px; color: #1c2a38; }
+.rf-textarea { width: 100%; box-sizing: border-box; border: 1px solid #d1e8ef; border-radius: 8px; padding: 10px; font: inherit; font-size: 14px; resize: vertical; }

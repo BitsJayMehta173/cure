@@ -20,18 +20,13 @@ interface CalendarStepProps {
    * Used by the Doctor Directory "Book Appointment" flow.
    */
   doctorId?: number;
-  /**
-   * When set (referral flow), the patient is locked to this profile ID —
-   * the patient picker in the confirm modal is hidden entirely.
-   */
-  lockedProfileId?: number;
   onBookingSuccess: (bookedProfileId?: number, appointmentId?: number) => void;
   onBack: () => void;
 }
 
 export const CalendarStep: React.FC<CalendarStepProps> = ({
   hospitalId, deptId, profileId, stateName,
-  doctorId, lockedProfileId, onBookingSuccess, onBack
+  doctorId, onBookingSuccess, onBack
 }) => {
   const [slots, setSlots] = useState<SlotAvailability[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,17 +57,15 @@ export const CalendarStep: React.FC<CalendarStepProps> = ({
     }
   };
 
-  // Determine effective profile and mode:
-  // - lockedProfileId: referral flow — patient locked, doctor auto-assigned from doctorId
-  // - doctorId (no lock): directory flow — patient picker shown
-  // - neither: wizard flow — profile pre-selected, doctor picker shown
-  const effectiveProfileId = lockedProfileId ?? profileId;
-  const modalMode = (doctorId && !lockedProfileId) ? 'patient-select' : 'doctor-select';
+  // Modal mode:
+  // - doctorId: directory flow — doctor fixed, patient picker shown
+  // - otherwise: wizard flow — profile pre-selected, doctor picker shown
+  const modalMode = doctorId ? 'patient-select' : 'doctor-select';
 
   return (
     <div className="calendar-step">
       <button className="back-link" onClick={onBack}>
-        {lockedProfileId ? '← Back to Appointments' : doctorId ? '← Back to Profile' : '← Back to Departments'}
+        {doctorId ? '← Back to Profile' : '← Back to Departments'}
       </button>
 
       <div className="calendar-header">
@@ -117,12 +110,11 @@ export const CalendarStep: React.FC<CalendarStepProps> = ({
         <ConfirmModal
           hospitalId={hospitalId}
           deptId={deptId}
-          profileId={effectiveProfileId}
+          profileId={profileId}
           stateName={stateName}
           date={selectedDate}
           mode={modalMode}
           defaultDoctorId={doctorId}
-          lockedProfileId={lockedProfileId}
           onClose={() => setShowConfirmModal(false)}
           onSuccess={onBookingSuccess}
         />

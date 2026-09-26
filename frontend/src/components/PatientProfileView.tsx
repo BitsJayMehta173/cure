@@ -8,28 +8,38 @@ interface PatientProfileViewProps {
   patientId: number;
   doctorId: number;
   onClose: () => void;
-  restrictedAppointmentId?: number | null;
-  onOpenAppointment?: (appointmentId: number) => void;
-  referralId?: number;
-  referralStatus?: string;
-  onAnalysisComplete?: (referralId: number) => void;
+  /** Inside the referral workspace: no back button / refer actions (the workspace owns those). */
+  embedded?: boolean;
 }
 
-export const PatientProfileView: React.FC<PatientProfileViewProps> = ({ 
-  patientId, doctorId, onClose, restrictedAppointmentId, onOpenAppointment, 
-  referralId, referralStatus, onAnalysisComplete 
-}) => {
-  const [activeTab, setActiveTab] = useState<'bio' | 'history'>('bio');
-  const [patient, setPatient] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Master-detail state for history
-  const [selectedApptId, setSelectedApptId] = useState<number | null>(null);
+interface HistoryItem {
+  id: number;
+  dateStr: string;
+  status: string;
+  generalAdvice: string;
+  hospitalName: string;
+  departmentName: string;
+  doctorName: string;
+  ownRecord: boolean;
+  parentAppointmentId: number | null;
+}
 
-  // Referral Modal State
+/**
+ * A doctor's view of one patient: bio + the visits this doctor may see. Which visits
+ * are visible is decided server-side (ReferralService.viewableAppointmentIds): own visits,
+ * referred visits and the earlier visits in their care chain — each tagged with its owner.
+ */
+export const PatientProfileView: React.FC<PatientProfileViewProps> = ({ patientId, doctorId, onClose, embedded }) => {
+  const [activeTab, setActiveTab] = useState<'bio' | 'history'>(embedded ? 'history' : 'bio');
+  const [patient, setPatient] = useState<any>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedApptId, setSelectedApptId] = useState<number | null>(null);
+  const [reports, setReports] = useState<any[]>([]);
+  const [medicines, setMedicines] = useState<any[]>([]);
+
   const [isReferralOpen, setIsReferralOpen] = useState(false);
-  const [referralApptId, setReferralApptId] = useState<number | null>(null); // null means refer whole history
+  const [referralApptId, setReferralApptId] = useState<number | null>(null); // null = whole history
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,29 +49,29 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
           fetch(`${API_BASE}/api/doctor-portal/patients/${patientId}/profile`),
           fetch(`${API_BASE}/api/doctor-portal/patients/${patientId}/history?doctorId=${doctorId}`)
         ]);
-        
-        if (profileRes.ok) {
-          setPatient(await profileRes.json());
-        }
+        if (profileRes.ok) setPatient(await profileRes.json());
         if (historyRes.ok) {
-          let histData = await historyRes.json();
-          // Filter if this is a restricted (single-case) referral
-          if (restrictedAppointmentId) {
-            histData = histData.filter((a: any) => a.id === restrictedAppointmentId);
-          }
+          const histData: HistoryItem[] = await historyRes.json();
           setHistory(histData);
-          if (histData.length > 0) {
-            setSelectedApptId(histData[0].id);
-          }
+          if (histData.length > 0) setSelectedApptId(histData[0].id);
         }
       } catch (e) {
-        console.error("Error fetching patient profile", e);
+        console.error('Error fetching patient profile', e);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [patientId, restrictedAppointmentId]);
+  }, [patientId, doctorId]);
+
+  // Reports & prescriptions of the selected visit (visit list is already access-filtered)
+  useEffect(() => {
+    if (!selectedApptId) { setReports([]); setMedicines([]); return; }
+    fetch(`${API_BASE}/api/records/reports?appointmentId=${selectedApptId}&userId=0`)
+      .then(r => (r.ok ? r.json() : [])).then(setReports).catch(() => setReports([]));
+    fetch(`${API_BASE}/api/records/medicines?appointmentId=${selectedApptId}&userId=0`)
+      .then(r => (r.ok ? r.json() : [])).then(setMedicines).catch(() => setMedicines([]));
+  }, [selectedApptId]);
 
   const handleOpenReferral = (apptId: number | null) => {
     setReferralApptId(apptId);
@@ -76,33 +86,21 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
   return (
     <div className="patient-profile-container">
       <div className="patient-profile-header">
-        <button className="back-btn" onClick={onClose}>&larr; Back to Directory</button>
+        {!embedded && <button className="back-btn" onClick={onClose}>&larr; Back to Directory</button>}
         <div className="patient-header-info">
-          <h2>{patient.fullName}</h2>
+          <h2>{embedded ? `Shared records · ${patient.fullName}` : patient.fullName}</h2>
           <div className="patient-badges">
             <span className="badge">{patient.age}y - {patient.gender}</span>
             <span className="badge blood-group">Blood: {patient.bloodGroup || 'Unknown'}</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {referralId && referralStatus !== 'analysed' && onAnalysisComplete && (
-            <button 
-              className="refer-primary-btn" 
-              style={{ background: '#059669', borderColor: '#059669' }}
-              onClick={() => onAnalysisComplete(referralId)}
-            >
-              ✅ Complete Analysis
+        {!embedded && (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="refer-primary-btn" onClick={() => handleOpenReferral(null)}>
+              Refer Patient
             </button>
-          )}
-          {referralId && referralStatus === 'analysed' && (
-            <span className="badge" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #10b981' }}>
-              Analysis Completed
-            </span>
-          )}
-          <button className="refer-primary-btn" onClick={() => handleOpenReferral(null)}>
-            Refer Patient
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="profile-tabs">
@@ -124,7 +122,6 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
                 </div>
               </div>
             </div>
-            
             <div className="bio-card health-profile">
               <h3>Health Profile</h3>
               <p>{patient.healthProfile || 'No health profile details provided.'}</p>
@@ -135,55 +132,77 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
         {activeTab === 'history' && (
           <div className="history-section">
             <div className="history-sidebar">
-              <h4>Past Visits</h4>
+              <h4>Visits you can see</h4>
               {history.length === 0 ? (
                 <div className="no-history">No medical history available.</div>
               ) : (
                 <ul className="history-list">
                   {history.map(appt => (
-                    <li 
-                      key={appt.id} 
+                    <li
+                      key={appt.id}
                       className={`history-list-item ${selectedApptId === appt.id ? 'active' : ''}`}
                       onClick={() => setSelectedApptId(appt.id)}
                     >
                       <div className="hist-date">{appt.dateStr}</div>
-                      <div className="hist-doc">{appt.departmentName} - {appt.hospitalName}</div>
+                      <div className="hist-doc">{appt.doctorName} · {appt.departmentName}</div>
+                      <div className="hist-doc">{appt.ownRecord ? '🩺 Your visit' : `📁 ${appt.hospitalName}`}</div>
                       <div className={`hist-status status-${appt.status?.toLowerCase()}`}>{appt.status}</div>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-            
+
             <div className="history-detail">
               {selectedAppt ? (
                 <div className="appt-detail-card">
                   <div className="appt-detail-header">
                     <h3>Visit Details: {selectedAppt.dateStr}</h3>
-                    <div style={{display: 'flex', gap: '8px'}}>
-                      {onOpenAppointment && (
-                        <button className="refer-primary-btn" onClick={() => onOpenAppointment(selectedAppt.id)}>
-                          Open Medical Report
-                        </button>
-                      )}
+                    {!embedded && (
                       <button className="refer-secondary-btn" onClick={() => handleOpenReferral(selectedAppt.id)}>
                         Refer this Case
                       </button>
-                    </div>
+                    )}
                   </div>
-                  
+
                   <div className="appt-info-grid">
-                    <div><strong>Doctor:</strong> {selectedAppt.doctorName}</div>
+                    <div><strong>Doctor:</strong> {selectedAppt.doctorName}{selectedAppt.ownRecord ? ' (you)' : ''}</div>
                     <div><strong>Department:</strong> {selectedAppt.departmentName}</div>
                     <div><strong>Hospital:</strong> {selectedAppt.hospitalName}</div>
                     <div><strong>Status:</strong> {selectedAppt.status}</div>
                   </div>
-                  
+
                   <div className="appt-advice-section">
-                    <h4>General Advice & Prescription</h4>
+                    <h4>General Advice</h4>
                     <div className="advice-box">
-                      {selectedAppt.generalAdvice || 'No advice/prescription recorded for this visit.'}
+                      {selectedAppt.generalAdvice || 'No advice recorded for this visit.'}
                     </div>
+                  </div>
+
+                  <div className="appt-advice-section">
+                    <h4>Reports</h4>
+                    {reports.length === 0 ? (
+                      <div className="advice-box">No reports for this visit.</div>
+                    ) : reports.map((r: any) => (
+                      <div key={r.id} className="advice-box" style={{ marginBottom: 8 }}>
+                        <strong>📄 {r.title}</strong> <span style={{ color: '#7a8a99', fontSize: 12 }}>· {r.reportDate}{r.authorName ? ` · by ${r.authorName}` : ''}</span>
+                        {r.textContent && <div style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{r.textContent}</div>}
+                        {r.fileUrl && <img src={r.fileUrl} alt={r.title} style={{ maxWidth: '100%', marginTop: 6, borderRadius: 6 }} />}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="appt-advice-section">
+                    <h4>Prescriptions</h4>
+                    {medicines.length === 0 ? (
+                      <div className="advice-box">No prescriptions for this visit.</div>
+                    ) : medicines.map((m: any) => (
+                      <div key={m.id} className="advice-box" style={{ marginBottom: 8 }}>
+                        <strong>💊 {m.medicineName}</strong>{m.dosage ? ` · ${m.dosage}` : ''}{m.frequency ? ` · ${m.frequency}` : ''}{m.duration ? ` · ${m.duration}` : ''}
+                        {m.instructions && <div style={{ marginTop: 4 }}>{m.instructions}</div>}
+                        {m.authorName && <div style={{ color: '#7a8a99', fontSize: 12, marginTop: 4 }}>by {m.authorName}</div>}
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : (
@@ -195,7 +214,7 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
       </div>
 
       {isReferralOpen && (
-        <ReferralModal 
+        <ReferralModal
           patientId={patientId}
           patientName={patient.fullName}
           currentDoctorId={doctorId}

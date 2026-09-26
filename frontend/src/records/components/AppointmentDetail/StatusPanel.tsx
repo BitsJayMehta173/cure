@@ -1,60 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import type { AppointmentSummary } from '../../../booking/types/booking.types';
+import { useAuth } from '../../../auth/AuthContext';
+import { followUpApi, referralApi } from '../../../referrals/api/referralApi';
+import type { AppointmentStatus, FollowUp } from '../../../referrals/types/referral.types';
+import { StatusBadge, StatusTimeline } from '../../../referrals/components/StatusTimeline';
+import { PatientCareItems } from '../../../referrals/components/PatientCareItems';
+import { ReferredFromInfo } from '../../../referrals/components/ReferredFromInfo';
 
 interface StatusPanelProps {
   appointment: AppointmentSummary;
 }
 
-const STEPS = ['Scheduled', 'Confirmed', 'Completed'] as const;
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-
-function getCurrentUserId(): number | null {
-  try {
-    const stored = localStorage.getItem('medroute_user');
-    if (stored) return JSON.parse(stored).id ?? null;
-  } catch { /* */ }
-  return null;
-}
-
+/** Visit status, timeline, and the referrals/follow-ups that came out of this visit — all server-computed. */
 export const StatusPanel: React.FC<StatusPanelProps> = ({ appointment }) => {
-  const status = appointment.status;
-  const isCancelled = status === 'cancelled';
+  const { user } = useAuth();
+  const [status, setStatus] = useState<AppointmentStatus | null>(null);
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
 
-  const [referral, setReferral] = useState<any>(null);
+  const load = () => {
+    if (!user) return;
+    referralApi.appointmentStatus(appointment.id, { userId: user.id })
+      .then(setStatus)
+      .catch(() => setStatus(null));
+    followUpApi.forPatient(user.id)
+      .then(list => setFollowUps(list.filter(f => f.sourceAppointment?.id === appointment.id)))
+      .catch(() => setFollowUps([]));
+  };
+  useEffect(load, [appointment.id, user?.id]);
 
-  useEffect(() => {
-    const userId = getCurrentUserId();
-    if (!userId) return;
-    fetch(`${API_BASE}/api/booking/referrals?userId=${userId}`)
-      .then(r => r.ok ? r.json() : [])
-      .then((refs: any[]) => {
-        const found = refs.find(r => r.sourceAppointmentId === appointment.id);
-        setReferral(found ?? null);
-      })
-      .catch(() => setReferral(null));
-  }, [appointment.id]);
-
-  const isReferred = !!referral;
-
-  const isPastVisit = !isCancelled && new Date(appointment.date) < new Date(new Date().toDateString());
-  const isCompleted = status === 'completed' || isPastVisit || isReferred;
-  const activeStepIndex = isCompleted ? 2 : 1;
-
-  const badgeClass = isCancelled
-    ? 'status error'
-    : isReferred
-    ? 'status referred'
-    : isCompleted
-    ? 'status stable'
-    : 'status success';
-
-  const badgeLabel = isCancelled
-    ? 'CANCELLED'
-    : isReferred
-    ? 'REFERRED'
-    : isCompleted
-    ? 'COMPLETED'
-    : 'CONFIRMED';
+  const display = status?.displayStatus ?? appointment.displayStatus ?? appointment.status;
 
   return (
     <div className="status-panel">
@@ -63,72 +37,20 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ appointment }) => {
           <h3>{appointment.hospitalName}</h3>
           <p className="status-panel-dept">{appointment.departmentName}</p>
         </div>
-        <span className={badgeClass}>{badgeLabel}</span>
+        <StatusBadge status={display} label={status?.displayLabel ?? display} />
       </div>
 
-      {!isCancelled ? (
-        <div className="status-stepper">
-          {STEPS.map((step, i) => (
-            <React.Fragment key={step}>
-              <div className={`status-step ${i <= activeStepIndex ? 'done' : ''}`}>
-                <span className="status-step-dot" />
-                <span className="status-step-label">{step}</span>
-              </div>
-              {i < STEPS.length - 1 && <div className={`status-step-line ${i < activeStepIndex ? 'done' : ''}`} />}
-            </React.Fragment>
-          ))}
-        </div>
-      ) : (
-        <div className="status-cancelled-note">This appointment was cancelled.</div>
-      )}
+      {status && <StatusTimeline steps={status.timeline} />}
+      {status?.referredFrom && <ReferredFromInfo referral={status.referredFrom} />}
 
-      {/* Show referral info block if referred */}
-      {isReferred && (
-        <div className="status-referral-info">
-          <div className="status-referral-header">
-            <span className="referral-badge-inline">🔄 Referred to Specialist</span>
-          </div>
-          <div className="status-referral-route">
-            <div className="status-ref-doctor from">
-              <span className="ref-doc-icon">👨‍⚕️</span>
-              <div>
-                <div className="ref-doc-name">{referral.referredByDoctorName}</div>
-                <div className="ref-doc-detail">{referral.referredByHospital}</div>
-              </div>
-            </div>
-            <div className="status-ref-connector">
-              <span className="ref-dot" /><span className="ref-dot" /><span className="ref-dot" />
-              <span className="ref-arrow">▶</span>
-            </div>
-            <div className="status-ref-doctor to">
-              <span className="ref-doc-icon">🩺</span>
-              <div>
-                <div className="ref-doc-name">{referral.referredToDoctorName}</div>
-                <div className="ref-doc-detail">{referral.referredToHospital}</div>
-              </div>
-            </div>
-          </div>
-          <div className="status-ref-status-row">
-            <span className="status-ref-label">Referral Status</span>
-            <span className={`status-ref-value ${referral.referralStatus}`}>
-              <span className={`status-ref-dot ${referral.referralStatus}`} />
-              {referral.referralStatus === 'pending' ? '⏳ Pending Review' : referral.referralStatus === 'analysed' ? '✅ Analysed' : '📅 Booked'}
-            </span>
-          </div>
-          {referral.referralStatus === 'analysed' && (
-            <div style={{ marginTop: '12px', textAlign: 'right' }}>
-              <button 
-                className="refer-primary-btn" 
-                style={{ padding: '6px 16px', fontSize: '13px' }}
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('nav-to-booking', { detail: { referral } }));
-                }}
-              >
-                Schedule Follow-up Appointment
-              </button>
-            </div>
-          )}
-          {referral.notes && <div className="status-ref-notes">📝 {referral.notes}</div>}
+      {user && status && (
+        <div className="rf-list" style={{ marginBottom: 16 }}>
+          <PatientCareItems
+            userId={user.id}
+            referrals={status.referrals}
+            followUps={followUps}
+            onChanged={load}
+          />
         </div>
       )}
 

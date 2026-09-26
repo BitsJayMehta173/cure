@@ -81,16 +81,16 @@ export const DateGallery: React.FC<DateGalleryProps> = ({ patient, onBack, onSel
               {group.appointments.map(apt => (
                 <div
                   key={apt.id}
-                  className={`gallery-tile status-${apt.status}`}
+                  className={`gallery-tile status-${apt.displayStatus ?? apt.status}`}
                   onClick={() => onSelectAppointment(apt)}
                 >
-                  <span className={`status-dot status-dot-${apt.status}`} />
+                  <span className={`status-dot status-dot-${apt.displayStatus ?? apt.status}`} />
                   <h4>{apt.doctorName || 'Assigned Specialist'}</h4>
                   <p className="gallery-tile-dept">{apt.departmentName}</p>
                   <p className="gallery-tile-hospital">{apt.hospitalName}</p>
                   <div className="gallery-tile-footer">
                     <span>{apt.expectedTimeStr || 'Pending'}</span>
-                    <span className={`status-badge status-${apt.status}`}>{apt.status}</span>
+                    <span className={`status-badge status-${apt.displayStatus ?? apt.status}`}>{(apt.displayStatus ?? apt.status).replace("_", " ")}</span>
                   </div>
                 </div>
               ))}

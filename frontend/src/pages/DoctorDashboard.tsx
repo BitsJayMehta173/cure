@@ -3,7 +3,15 @@ import { useAuth } from '../auth/AuthContext';
 import './DoctorDashboard.css';
 import type { DoctorProfile } from '../booking/types/booking.types';
 import { PatientProfileView } from '../components/PatientProfileView';
-import { ReferralModal } from '../components/ReferralModal';
+import { referralApi, followUpApi, caseRecordsApi } from '../referrals/api/referralApi';
+import { CaseRecordsPanel } from '../referrals/components/CaseRecordsPanel';
+import { ReferredFromInfo } from '../referrals/components/ReferredFromInfo';
+import type { AppointmentDisplayStatus, AppointmentStatus, Referral } from '../referrals/types/referral.types';
+import { StatusBadge, StatusTimeline } from '../referrals/components/StatusTimeline';
+import { SlotPicker } from '../referrals/components/SlotPicker';
+import { ReferralCard } from '../referrals/components/ReferralCard';
+import { ReferralWorkspace } from '../referrals/components/ReferralWorkspace';
+import { AppointmentReferralsPanel } from '../referrals/components/AppointmentReferralsPanel';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -43,6 +51,8 @@ interface DoctorAppointment {
   tokenCode: string;
   dateStr: string;
   status: string;
+  /** Server-computed (ReferralService): confirmed | referred | feedback_received | completed | cancelled */
+  displayStatus?: AppointmentDisplayStatus;
   generalAdvice: string;
   expectedTimeStr: string;
   hospitalName: string;
@@ -621,7 +631,7 @@ const DoctorPatientDirectory: React.FC<DoctorPatientDirectoryProps> = ({ doctorI
   );
 };
 
-// ─── Sub-component: Appointment Detail (Status/Prescriptions/General Advice) ─
+// ─── Sub-component: Appointment Detail (Status/Reports/Prescriptions/Advice/Referrals/Finalize) ─
 
 interface DoctorAptDetailProps {
   appointment: DoctorAppointment;
@@ -629,107 +639,71 @@ interface DoctorAptDetailProps {
   onBack: () => void;
 }
 
-const STEPS = ['Scheduled', 'Confirmed', 'Completed'] as const;
-
 const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId, onBack }) => {
-  const { user } = useAuth();
   const [tab, setTab] = useState<'status' | 'reports' | 'prescriptions' | 'advice' | 'refer' | 'finalize'>('status');
   const [advice, setAdvice] = useState(appointment.generalAdvice || '');
   const [savingAdvice, setSavingAdvice] = useState(false);
   const [adviceSaved, setAdviceSaved] = useState(false);
-  
-  const [medicines, setMedicines] = useState<any[]>([]);
-  const [medsLoading, setMedsLoading] = useState(false);
-  const [newMed, setNewMed] = useState({ medicineName: '', dosage: '', frequency: '', duration: '', instructions: '' });
+  // Advice is write-once (like every record): locked as soon as it exists.
+  const [adviceLocked, setAdviceLocked] = useState(!!appointment.generalAdvice?.trim());
+  const [adviceError, setAdviceError] = useState('');
 
-  const [reports, setReports] = useState<any[]>([]);
-  const [reportsLoading, setReportsLoading] = useState(false);
-  const [newReport, setNewReport] = useState({ title: '', textContent: '', reportType: 'text' });
-
-  const [isReferralOpen, setIsReferralOpen] = useState(false);
   const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpNotes, setFollowUpNotes] = useState('');
   const [finalizing, setFinalizing] = useState(false);
   const [finalizeMessage, setFinalizeMessage] = useState('');
+
+  // Status, timeline and referrals all come from the server (ReferralService).
+  const [status, setStatus] = useState<AppointmentStatus | null>(null);
+  const loadStatus = () => {
+    referralApi.appointmentStatus(appointment.id, { doctorId })
+      .then(setStatus)
+      .catch(() => setStatus(null));
+  };
+  useEffect(loadStatus, [appointment.id, doctorId]);
+
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-
-  const isCancelled = appointment.status === 'cancelled';
-  const isPastVisit = !isCancelled && new Date(appointment.dateStr) < new Date(new Date().toDateString());
-  const isCompleted = appointment.status === 'completed' || isPastVisit;
-  const activeStepIndex = isCompleted ? 2 : 1;
-  const badgeLabel = isCancelled ? 'CANCELLED' : isCompleted ? 'COMPLETED' : 'CONFIRMED';
-  const badgeClass = isCancelled ? 'dd-status-badge cancelled' : isCompleted ? 'dd-status-badge completed' : 'dd-status-badge confirmed';
-
-  useEffect(() => {
-    if (tab === 'prescriptions') {
-      loadMedicines();
-    } else if (tab === 'reports') {
-      loadReports();
-    }
-  }, [tab, appointment.id]);
-
-  const loadMedicines = () => {
-    setMedsLoading(true);
-    fetch(`${API_BASE}/api/records/medicines?appointmentId=${appointment.id}&userId=0`)
-      .then(r => r.ok ? r.json() : []).then(setMedicines).catch(() => setMedicines([]))
-      .finally(() => setMedsLoading(false));
-  };
-
-  const loadReports = () => {
-    setReportsLoading(true);
-    fetch(`${API_BASE}/api/records/reports?appointmentId=${appointment.id}&userId=0`)
-      .then(r => r.ok ? r.json() : []).then(setReports).catch(() => setReports([]))
-      .finally(() => setReportsLoading(false));
-  };
-
-  const handleAddMedicine = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMed.medicineName) return;
-    try {
-      await fetch(`${API_BASE}/api/records/medicines`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newMed, appointmentId: appointment.id, authorName: user?.fullName || 'Doctor' })
-      });
-      setNewMed({ medicineName: '', dosage: '', frequency: '', duration: '', instructions: '' });
-      loadMedicines();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleAddReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReport.title) return;
-    try {
-      await fetch(`${API_BASE}/api/records/reports`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newReport, appointmentId: appointment.id, authorName: user?.fullName || 'Doctor' })
-      });
-      setNewReport({ title: '', textContent: '', reportType: 'text' });
-      loadReports();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const display: AppointmentDisplayStatus = status?.displayStatus ?? appointment.displayStatus ?? 'confirmed';
+  const handedOver = (status?.referrals ?? []).some(r => r.kind === 'TRANSFER' && (r.status === 'ACCEPTED' || r.status === 'FOLLOW_UP_BOOKED'));
+  const isFinal = display === 'completed' || display === 'cancelled' || handedOver;
 
   const saveAdvice = async () => {
+    if (!advice.trim() || adviceLocked) return;
+    if (!window.confirm("General advice can't be changed after saving. Save it now?")) return;
     setSavingAdvice(true);
+    setAdviceError('');
     try {
-      await fetch(`${API_BASE}/api/doctor-portal/appointments/${appointment.id}/advice`, {
+      const res = await fetch(`${API_BASE}/api/doctor-portal/appointments/${appointment.id}/advice`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ advice })
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Could not save advice.');
+      }
+      setAdviceLocked(true);
       setAdviceSaved(true);
       setTimeout(() => setAdviceSaved(false), 3000);
+    } catch (e: any) {
+      setAdviceError(e?.message || 'Could not save advice.');
     } finally { setSavingAdvice(false); }
   };
 
+  // Referrals still awaiting a response are withdrawn by the server when the visit is finalized.
+  const pendingReferrals = (status?.referrals ?? []).filter(r => r.status === 'REQUESTED');
+  const confirmWithdrawPending = () =>
+    pendingReferrals.length === 0 || window.confirm(
+      `Finalizing will cancel the pending referral${pendingReferrals.length > 1 ? 's' : ''} to `
+      + pendingReferrals.map(r => r.toDoctor.name).join(', ')
+      + ' — they have not responded yet. Continue?');
+
   const handleCompleteAppointment = async () => {
+    if (!confirmWithdrawPending()) return;
     setFinalizing(true);
     try {
       await fetch(`${API_BASE}/api/doctor-portal/appointments/${appointment.id}/complete`, { method: 'POST' });
       setFinalizeMessage('✅ Appointment marked as completed.');
-      setTimeout(() => setFinalizeMessage(''), 3000);
-      onBack();
+      loadStatus();
     } catch (e) {
       console.error(e);
       setFinalizeMessage('❌ Error completing appointment.');
@@ -738,48 +712,21 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
     }
   };
 
-  const handleScheduleFollowup = async () => {
+  const handleRequestFollowUp = async () => {
+    if (!appointment.patientFk) return;
+    if (!confirmWithdrawPending()) return;
     setFinalizing(true);
+    setFinalizeMessage('');
     try {
-      // Create a self-referral so the patient sees the follow-up in their portal
-      const res = await fetch(`${API_BASE}/api/doctor-portal/referrals`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientId: appointment.patientFk,
-          referredByDoctorId: doctorId,
-          referredToDoctorId: doctorId,
-          appointmentId: appointment.id,
-          referralType: 'SINGLE_CASE',
-          notes: 'Follow-up requested by doctor.'
-        })
-      });
-      const data = await res.json();
-      
-      if (!res.ok) {
-        if (!(data.error && data.error.includes("already been referred"))) {
-          throw new Error(data.error);
-        }
-      }
-      
-      // If the doctor picked a follow-up date, book it directly
-      if (followUpDate) {
-        const bookRes = await fetch(`${API_BASE}/api/booking/confirm?profileId=${appointment.patientFk}&hospitalId=${appointment.hospitalId || 1}&deptId=${appointment.departmentId || 1}&date=${followUpDate}&doctorId=${doctorId}`, {
-          method: 'POST'
-        });
-        if (!bookRes.ok) throw new Error('Failed to book follow-up appointment.');
-      }
-      // If no date, the patient can pick a date from their portal
-
-      await fetch(`${API_BASE}/api/doctor-portal/appointments/${appointment.id}/complete`, { method: 'POST' });
-      setFinalizeMessage('✅ Follow-up requested and appointment completed.');
-      setTimeout(() => {
-        setFinalizeMessage('');
-        onBack();
-      }, 2000);
+      // Completes this visit and creates a follow-up: booked now if a date is picked, else left for the patient.
+      await followUpApi.create(appointment.id, doctorId, followUpDate || null, followUpNotes);
+      setFinalizeMessage(followUpDate
+        ? `✅ Visit completed and follow-up booked for ${followUpDate}.`
+        : '✅ Visit completed. The patient can book the follow-up from their portal.');
+      setFollowUpDate('');
+      loadStatus();
     } catch (e: any) {
-      console.error(e);
-      setFinalizeMessage('❌ ' + (e.message || 'Error scheduling follow-up.'));
+      setFinalizeMessage('❌ ' + (e?.message || 'Error requesting follow-up.'));
     } finally {
       setFinalizing(false);
     }
@@ -797,7 +744,7 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
             { key: 'reports', label: 'Medical Reports', icon: '📄' },
             { key: 'prescriptions', label: 'Prescriptions', icon: '💊' },
             { key: 'advice', label: 'General Advice', icon: '📝' },
-            { key: 'refer', label: 'Refer Case', icon: '🔄' },
+            { key: 'refer', label: `Referrals${status?.referrals.length ? ` (${status.referrals.length})` : ''}`, icon: '🔄' },
             { key: 'finalize', label: 'Finalize', icon: '✅' },
           ].map(item => (
             <button
@@ -819,23 +766,15 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
                   <h3>{appointment.hospitalName}</h3>
                   <p className="dd-status-dept">{appointment.departmentName}</p>
                 </div>
-                <span className={badgeClass}>{badgeLabel}</span>
+                <StatusBadge status={display} label={status?.displayLabel ?? display} />
               </div>
 
-              {!isCancelled ? (
-                <div className="dd-status-stepper">
-                  {STEPS.map((step, i) => (
-                    <React.Fragment key={step}>
-                      <div className={`dd-status-step ${i <= activeStepIndex ? 'done' : ''}`}>
-                        <span className="dd-status-dot" />
-                        <span className="dd-status-label">{step}</span>
-                      </div>
-                      {i < STEPS.length - 1 && <div className={`dd-status-line ${i < activeStepIndex ? 'done' : ''}`} />}
-                    </React.Fragment>
-                  ))}
+              {status && <StatusTimeline steps={status.timeline} />}
+              {status?.referredFrom && <ReferredFromInfo referral={status.referredFrom} />}
+              {display === 'feedback_received' && (
+                <div className="rf-success" style={{ marginBottom: 16 }}>
+                  ✅ Second-opinion findings received — see the Referrals tab, then finalize this visit.
                 </div>
-              ) : (
-                <div className="dd-cancelled-note">This appointment was cancelled.</div>
               )}
 
               <div className="dd-status-grid">
@@ -871,169 +810,122 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
             </div>
           )}
 
-          {tab === 'reports' && (
-            <div>
-              <div className="dd-advice-panel" style={{ marginBottom: '20px' }}>
-                <h3>📄 Add Medical Report</h3>
-                <form onSubmit={handleAddReport} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <input type="text" placeholder="Report Title (e.g., Blood Test Results)" value={newReport.title} onChange={e => setNewReport({...newReport, title: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px' }} required />
-                  <textarea placeholder="Report Details / Content" value={newReport.textContent} onChange={e => setNewReport({...newReport, textContent: e.target.value})} className="dd-advice-textarea" rows={4} required />
-                  <button type="submit" className="doc-btn-primary" style={{ alignSelf: 'flex-start' }}>Upload Report</button>
-                </form>
-              </div>
-
-              {reportsLoading && <p className="dd-loading">Loading reports...</p>}
-              {!reportsLoading && reports.length === 0 && (
-                <div className="dd-empty-state" style={{ padding: '40px 20px' }}>
-                  <div className="dd-empty-icon">📄</div>
-                  <h3>No reports yet</h3>
-                  <p>Medical reports for this appointment will appear here.</p>
-                </div>
-              )}
-              <div className="dd-medicine-list">
-                {reports.map((r: any) => (
-                  <div key={r.id} className="dd-medicine-card">
-                    <div className="dd-medicine-top">
-                      <h4>📄 {r.title}</h4>
-                      <span className="dd-dosage">{r.reportDate}</span>
-                    </div>
-                    <p className="dd-medicine-note">{r.textContent}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {tab === 'prescriptions' && (
-            <div>
-              <div className="dd-advice-panel" style={{ marginBottom: '20px' }}>
-                <h3>💊 Add Prescription</h3>
-                <form onSubmit={handleAddMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <input type="text" placeholder="Medicine Name" value={newMed.medicineName} onChange={e => setNewMed({...newMed, medicineName: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px' }} required />
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <input type="text" placeholder="Dosage (e.g., 500mg)" value={newMed.dosage} onChange={e => setNewMed({...newMed, dosage: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px', flex: 1 }} />
-                    <input type="text" placeholder="Frequency (e.g., Twice daily)" value={newMed.frequency} onChange={e => setNewMed({...newMed, frequency: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px', flex: 1 }} />
-                  </div>
-                  <input type="text" placeholder="Duration (e.g., 5 days)" value={newMed.duration} onChange={e => setNewMed({...newMed, duration: e.target.value})} className="dd-advice-textarea" style={{ minHeight: '40px' }} />
-                  <textarea placeholder="Instructions" value={newMed.instructions} onChange={e => setNewMed({...newMed, instructions: e.target.value})} className="dd-advice-textarea" rows={2} />
-                  <button type="submit" className="doc-btn-primary" style={{ alignSelf: 'flex-start' }}>Add Medicine</button>
-                </form>
-              </div>
-
-              {medsLoading && <p className="dd-loading">Loading prescriptions...</p>}
-              {!medsLoading && medicines.length === 0 && (
-                <div className="dd-empty-state" style={{ padding: '40px 20px' }}>
-                  <div className="dd-empty-icon">💊</div>
-                  <h3>No prescriptions yet</h3>
-                  <p>Medicines prescribed for this appointment will appear here.</p>
-                </div>
-              )}
-              <div className="dd-medicine-list">
-                {medicines.map((m: any) => (
-                  <div key={m.id} className="dd-medicine-card">
-                    <div className="dd-medicine-top">
-                      <h4>💊 {m.medicineName}</h4>
-                      {m.dosage && <span className="dd-dosage">{m.dosage}</span>}
-                    </div>
-                    <div className="dd-medicine-meta">
-                      {m.frequency && <div className="dd-meta-box"><span className="label">Frequency</span><span className="value">{m.frequency}</span></div>}
-                      {m.duration && <div className="dd-meta-box"><span className="label">Duration</span><span className="value">{m.duration}</span></div>}
-                    </div>
-                    {m.instructions && <p className="dd-medicine-note">📝 {m.instructions}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
+          {(tab === 'reports' || tab === 'prescriptions') && (
+            <CaseRecordsPanel
+              key={tab}
+              load={() => caseRecordsApi.forAppointment(appointment.id, doctorId)}
+              target={{ appointmentId: appointment.id }}
+              doctorId={doctorId}
+              sections={[tab]}
+            />
           )}
 
           {tab === 'advice' && (
             <div className="dd-advice-panel">
               <h3>📝 General Advice</h3>
-              <p className="dd-advice-subtitle">Add clinical notes, lifestyle recommendations, or follow-up instructions for this patient's visit.</p>
-              <textarea
-                className="dd-advice-textarea"
-                rows={8}
-                value={advice}
-                onChange={e => setAdvice(e.target.value)}
-                placeholder="e.g. Take rest for 3 days. Avoid spicy food. Follow up in 2 weeks. Drink plenty of water..."
+              {adviceLocked ? (
+                <>
+                  <p className="dd-advice-subtitle">🔒 Saved advice is permanent and can't be changed. Add a report if you need to record more.</p>
+                  <div className="rf-quote" style={{ whiteSpace: 'pre-wrap', fontSize: 14 }}>{advice}</div>
+                  {adviceSaved && <span className="dd-advice-saved">✅ Saved successfully!</span>}
+                </>
+              ) : (
+                <>
+                  <p className="dd-advice-subtitle">
+                    Add clinical notes, lifestyle recommendations, or follow-up instructions for this patient's visit.
+                    {' '}🔒 Once saved, advice can't be edited.
+                  </p>
+                  <textarea
+                    className="dd-advice-textarea"
+                    rows={8}
+                    value={advice}
+                    onChange={e => setAdvice(e.target.value)}
+                    placeholder="e.g. Take rest for 3 days. Avoid spicy food. Follow up in 2 weeks. Drink plenty of water..."
+                  />
+                  <div className="dd-advice-actions">
+                    {adviceError && <span className="rf-error">❌ {adviceError}</span>}
+                    <button className="doc-btn-primary" onClick={saveAdvice} disabled={savingAdvice || !advice.trim()}>
+                      {savingAdvice ? 'Saving...' : '💾 Save Advice'}
+                    </button>
+                  </div>
+                </>
+              )}
+              <h4 style={{ margin: '24px 0 10px' }}>Earlier in this case</h4>
+              <CaseRecordsPanel
+                load={() => caseRecordsApi.forAppointment(appointment.id, doctorId)}
+                target={{ appointmentId: appointment.id }}
+                doctorId={doctorId}
+                sections={['notes']}
+                hideOwnAdvice
+                reloadKey={adviceSaved}
               />
-              <div className="dd-advice-actions">
-                {adviceSaved && <span className="dd-advice-saved">✅ Saved successfully!</span>}
-                <button className="doc-btn-primary" onClick={saveAdvice} disabled={savingAdvice}>
-                  {savingAdvice ? 'Saving...' : '💾 Save Advice'}
-                </button>
-              </div>
             </div>
           )}
 
           {tab === 'refer' && (
-            <div className="dd-advice-panel">
-              <h3>🔄 Refer this Case</h3>
-              <p className="dd-advice-subtitle">
-                Send this patient's medical history and case details to another doctor in the network.
-              </p>
-              <div style={{ marginTop: '20px' }}>
-                <button className="doc-btn-primary" onClick={() => setIsReferralOpen(true)}>
-                  Search & Refer Doctor
-                </button>
-              </div>
-
-              {isReferralOpen && (
-                <ReferralModal 
-                  patientId={appointment.patientFk!}
-                  patientName={appointment.patientName}
-                  currentDoctorId={doctorId}
-                  appointmentId={appointment.id}
-                  onClose={() => setIsReferralOpen(false)}
-                />
-              )}
-            </div>
+            <AppointmentReferralsPanel
+              appointmentId={appointment.id}
+              patientId={appointment.patientFk}
+              patientName={appointment.patientName}
+              doctorId={doctorId}
+              status={status}
+              onChanged={loadStatus}
+            />
           )}
 
           {tab === 'finalize' && (
             <div className="dd-advice-panel">
               <h3>✅ Finalize Appointment</h3>
-              <p className="dd-advice-subtitle">
-                Mark this appointment as completed and optionally schedule a follow-up.
-              </p>
-
-              <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-                <div style={{ flex: 1, padding: '20px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
-                  <h4>Complete Only</h4>
-                  <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
-                    Mark this appointment as complete. No follow-up needed.
+              {isFinal ? (
+                <p className="dd-advice-subtitle">
+                  {handedOver
+                    ? 'This case was handed over to another doctor — nothing left to finalize here.'
+                    : `This visit is ${display}. Nothing left to finalize.`}
+                </p>
+              ) : (
+                <>
+                  <p className="dd-advice-subtitle">
+                    Mark this appointment as completed, optionally with a follow-up visit with you.
                   </p>
-                  <button className="doc-btn-primary" onClick={handleCompleteAppointment} disabled={finalizing} style={{ width: '100%', background: '#4caf50' }}>
-                    {finalizing ? 'Processing...' : 'Complete Appointment'}
-                  </button>
-                </div>
-
-                <div style={{ flex: 1, padding: '20px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
-                  <h4>Complete & Request Follow-up</h4>
-                  <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
-                    Request a follow-up for this patient.
-                  </p>
-                  
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Follow-up Date (Optional)</label>
-                    <input 
-                      type="date" 
-                      min={new Date().toISOString().split('T')[0]}
-                      value={followUpDate} 
-                      onChange={e => setFollowUpDate(e.target.value)}
-                      className="dd-advice-textarea" 
-                      style={{ minHeight: '40px', padding: '8px' }}
-                    />
-                    <p style={{ fontSize: '12px', color: '#999', marginTop: '6px' }}>
-                      If left blank, the patient can choose a date from their portal.
+                  {pendingReferrals.length > 0 && (
+                    <p className="rf-meta" style={{ color: '#b45309' }}>
+                      ⏳ Still awaiting a response from {pendingReferrals.map(r => r.toDoctor.name).join(', ')}.
+                      Finalizing now will cancel {pendingReferrals.length > 1 ? 'those referrals' : 'that referral'}.
                     </p>
-                  </div>
+                  )}
 
-                  <button className="doc-btn-primary" onClick={handleScheduleFollowup} disabled={finalizing} style={{ width: '100%' }}>
-                    {finalizing ? 'Processing...' : (followUpDate ? 'Book Follow-up' : 'Request Follow-up')}
-                  </button>
-                </div>
-              </div>
+                  <div style={{ display: 'flex', gap: '20px', marginTop: '20px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 240, padding: '20px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                      <h4>Complete Only</h4>
+                      <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>No follow-up needed.</p>
+                      <button className="doc-btn-primary" onClick={handleCompleteAppointment} disabled={finalizing} style={{ width: '100%', background: '#4caf50' }}>
+                        {finalizing ? 'Processing...' : 'Complete Appointment'}
+                      </button>
+                    </div>
+
+                    <div style={{ flex: 2, minWidth: 300, padding: '20px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+                      <h4>Complete & Request Follow-up</h4>
+                      <p style={{ fontSize: '13px', color: '#666', margin: '4px 0 12px' }}>
+                        Pick a date to book it now, or leave it blank and the patient books from their portal.
+                      </p>
+                      {appointment.hospitalId && appointment.departmentId && (
+                        <SlotPicker hospitalId={appointment.hospitalId} deptId={appointment.departmentId}
+                          value={followUpDate} onChange={setFollowUpDate} />
+                      )}
+                      <textarea className="rf-textarea" rows={2} style={{ marginTop: 10 }} value={followUpNotes}
+                        onChange={e => setFollowUpNotes(e.target.value)} placeholder="Note for the patient (e.g. review in 2 weeks with blood report)" />
+                      <div style={{ display: 'flex', gap: '10px', marginTop: 10 }}>
+                        <button className="doc-btn-primary" onClick={handleRequestFollowUp} disabled={finalizing || !appointment.patientFk} style={{ flex: 1 }}>
+                          {finalizing ? 'Processing...' : (followUpDate ? `Complete & book ${followUpDate}` : 'Complete & request follow-up')}
+                        </button>
+                        {followUpDate && (
+                          <button className="doc-btn-secondary" onClick={() => setFollowUpDate('')} style={{ padding: '8px' }}>Clear</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {finalizeMessage && (
                 <div style={{ marginTop: '20px', padding: '12px', background: '#f5f5f5', borderRadius: '6px', textAlign: 'center', fontWeight: 500 }}>
@@ -1061,6 +953,8 @@ const DoctorAppointmentsTab: React.FC<DoctorAppointmentsTabProps> = ({ doctorId 
   const [loading, setLoading] = useState(false);
   const [selectedApt, setSelectedApt] = useState<DoctorAppointment | null>(null);
   const [dates, setDates] = useState<string[]>([]);
+  // Bumped when returning from a detail view so statuses changed there (referred, completed…) refresh.
+  const [reloadKey, setReloadKey] = useState(0);
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
   // Load available dates
@@ -1076,10 +970,16 @@ const DoctorAppointmentsTab: React.FC<DoctorAppointmentsTabProps> = ({ doctorId 
     fetch(`${API_BASE}/api/doctor-portal/appointments?doctorId=${doctorId}&date=${selectedDate}`)
       .then(r => r.json()).then(setAppointments).catch(() => setAppointments([]))
       .finally(() => setLoading(false));
-  }, [doctorId, selectedDate]);
+  }, [doctorId, selectedDate, reloadKey]);
 
   if (selectedApt) {
-    return <DoctorAptDetail appointment={selectedApt} doctorId={doctorId} onBack={() => setSelectedApt(null)} />;
+    return (
+      <DoctorAptDetail
+        appointment={selectedApt}
+        doctorId={doctorId}
+        onBack={() => { setSelectedApt(null); setReloadKey(k => k + 1); }}
+      />
+    );
   }
 
   return (
@@ -1138,7 +1038,7 @@ const DoctorAppointmentsTab: React.FC<DoctorAppointmentsTabProps> = ({ doctorId 
               </div>
             </div>
             <div className="dd-apt-right">
-              <span className={`dd-apt-status ${apt.status}`}>{apt.status}</span>
+              <StatusBadge status={apt.displayStatus ?? apt.status} label={(apt.displayStatus ?? apt.status).replace('_', ' ')} />
               <span className="dd-apt-arrow">›</span>
             </div>
           </div>
@@ -1150,138 +1050,85 @@ const DoctorAppointmentsTab: React.FC<DoctorAppointmentsTabProps> = ({ doctorId 
 
 // ─── Sub-component: Doctor Referrals Tab ────────────────────────────────────
 
-interface ReferralItem {
-  id: number;
-  patientId: number;
-  patientName: string;
-  patientAge: number;
-  patientGender: string;
-  patientBloodGroup: string;
-  patientLocation: string;
-  referredByDoctorId: number;
-  referredByDoctorName: string;
-  referredByHospital: string;
-  referredByDepartment: string;
-  notes: string;
-  createdAt: string;
-  appointmentId?: number;
-  appointmentDate?: string;
-}
-
 interface DoctorReferralsTabProps {
   doctorId: number;
 }
 
+type ReferralFilter = 'action' | 'received' | 'sent';
+
 const DoctorReferralsTab: React.FC<DoctorReferralsTabProps> = ({ doctorId }) => {
-  const [referrals, setReferrals] = useState<ReferralItem[]>([]);
+  const [incoming, setIncoming] = useState<Referral[]>([]);
+  const [outgoing, setOutgoing] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedReferral, setSelectedReferral] = useState<ReferralItem | null>(null);
-  const [openedApt, setOpenedApt] = useState<any>(null); // For DoctorAptDetail
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  const [filter, setFilter] = useState<ReferralFilter>('action');
+  const [selected, setSelected] = useState<Referral | null>(null);
 
-  useEffect(() => {
+  const load = () => {
     setLoading(true);
-    fetch(`${API_BASE}/api/doctor-portal/referrals?doctorId=${doctorId}`)
-      .then(r => r.json())
-      .then(setReferrals)
-      .catch(() => setReferrals([]))
+    Promise.all([referralApi.incoming(doctorId), referralApi.outgoing(doctorId)])
+      .then(([inc, out]) => { setIncoming(inc); setOutgoing(out); })
+      .catch(() => { setIncoming([]); setOutgoing([]); })
       .finally(() => setLoading(false));
-  }, [doctorId]);
-
-  const handleOpenAppointment = (appointmentId: number) => {
-    fetch(`${API_BASE}/api/doctor-portal/appointments/${appointmentId}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(apt => {
-        if (apt) setOpenedApt(apt);
-      })
-      .catch(e => console.error(e));
   };
+  useEffect(load, [doctorId]);
 
-  if (openedApt) {
-    return <DoctorAptDetail appointment={openedApt} doctorId={doctorId} onBack={() => setOpenedApt(null)} />;
-  }
+  const needsAction = incoming.filter(r => r.actions.length > 0);
 
-  const handleCompleteAnalysis = async (referralId: number) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/doctor-portal/referrals/${referralId}/complete-analysis`, {
-        method: 'POST'
-      });
-      if (res.ok) {
-        setReferrals(prev => prev.map(r => r.id === referralId ? { ...r, referralStatus: 'analysed' } : r));
-        setSelectedReferral(prev => prev && prev.id === referralId ? { ...prev, referralStatus: 'analysed' } : prev);
-      }
-    } catch (e) {
-      console.error('Failed to complete analysis', e);
-    }
-  };
-
-  if (selectedReferral) {
-    const isSingleCase = selectedReferral.appointmentId != null;
+  if (selected) {
     return (
-      <PatientProfileView 
-        patientId={selectedReferral.patientId} 
-        doctorId={doctorId} 
-        onClose={() => setSelectedReferral(null)}
-        restrictedAppointmentId={isSingleCase ? selectedReferral.appointmentId : null}
-        onOpenAppointment={handleOpenAppointment}
-        referralId={selectedReferral.id}
-        referralStatus={(selectedReferral as any).referralStatus}
-        onAnalysisComplete={handleCompleteAnalysis}
+      <ReferralWorkspace
+        referral={selected}
+        doctorId={doctorId}
+        onBack={() => { setSelected(null); load(); }}
+        onChanged={updated => {
+          setSelected(updated);
+          setIncoming(prev => prev.map(r => (r.id === updated.id ? updated : r)));
+          setOutgoing(prev => prev.map(r => (r.id === updated.id ? updated : r)));
+        }}
       />
     );
   }
 
+  const list = filter === 'action' ? needsAction : filter === 'received' ? incoming : outgoing;
+
   return (
     <div className="dd-patient-dir">
-      <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>🔄 Referred Cases</h3>
+      <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>🔄 Referrals</h3>
+
+      <div className="rf-filters">
+        <button className={`rf-filter ${filter === 'action' ? 'active' : ''}`} onClick={() => setFilter('action')}>
+          Needs your action ({needsAction.length})
+        </button>
+        <button className={`rf-filter ${filter === 'received' ? 'active' : ''}`} onClick={() => setFilter('received')}>
+          Received ({incoming.length})
+        </button>
+        <button className={`rf-filter ${filter === 'sent' ? 'active' : ''}`} onClick={() => setFilter('sent')}>
+          Sent ({outgoing.length})
+        </button>
+      </div>
 
       {loading && <div className="dd-loading">⏳ Loading referrals...</div>}
 
-      {!loading && referrals.length === 0 && (
+      {!loading && list.length === 0 && (
         <div className="dd-empty-state">
           <div className="dd-empty-icon">📋</div>
-          <h3>No referrals yet</h3>
-          <p>When another doctor refers a patient to you, it will appear here.</p>
+          <h3>{filter === 'sent' ? 'No referrals sent' : filter === 'action' ? 'Nothing waiting on you' : 'No referrals yet'}</h3>
+          <p>
+            {filter === 'sent'
+              ? 'Refer a case from an appointment’s Referrals tab.'
+              : 'When another doctor refers a patient to you, it will appear here.'}
+          </p>
         </div>
       )}
 
-      <div className="dd-patient-grid">
-        {referrals.map(ref => (
-          <div
-            key={ref.id}
-            className="dd-patient-card"
-            style={{ cursor: 'pointer' }}
-            onClick={() => setSelectedReferral(ref)}
-          >
-            <div className="dd-patient-avatar">{ref.patientName?.charAt(0).toUpperCase() || '?'}</div>
-            <div className="dd-patient-info">
-              <div className="dd-patient-name">{ref.patientName}</div>
-              <div className="dd-patient-meta">
-                {ref.patientAge && <span>{ref.patientAge}y</span>}
-                {ref.patientGender && <span>· {ref.patientGender}</span>}
-                {ref.patientBloodGroup && <span className="dd-blood-group">🩸 {ref.patientBloodGroup}</span>}
-              </div>
-              {ref.patientLocation && (
-                <div className="dd-patient-mobile">📍 {ref.patientLocation}</div>
-              )}
-              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                <strong>Referred by:</strong> {ref.referredByDoctorName}
-              </div>
-              <div style={{ fontSize: '11px', color: '#888' }}>
-                {ref.referredByDepartment}{ref.referredByHospital ? `, ${ref.referredByHospital}` : ''}
-              </div>
-              {ref.notes && (
-                <div style={{ fontSize: '11px', color: '#555', marginTop: '4px', fontStyle: 'italic', borderLeft: '2px solid var(--color-primary, #00766c)', paddingLeft: '6px' }}>
-                  "{ref.notes}"
-                </div>
-              )}
-              {ref.createdAt && (
-                <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px' }}>
-                  Referred on: {new Date(ref.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="rf-grid">
+        {list.map(r => (
+          <ReferralCard
+            key={r.id}
+            referral={r}
+            perspective={filter === 'sent' ? 'from' : 'to'}
+            onClick={() => setSelected(r)}
+          />
         ))}
       </div>
     </div>
@@ -1463,7 +1310,9 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ doctorId }) =>
         <div className="dd-tab-content">
           {activeTab === 'patients' && <DoctorPatientDirectory doctorId={Number(activeDoctorId)} />}
           {activeTab === 'appointments' && <DoctorAppointmentsTab doctorId={Number(activeDoctorId)} />}
-          {activeTab === 'referrals' && <DoctorReferralsTab doctorId={Number(activeDoctorId)} />}
+          {activeTab === 'referrals' && (
+            <DoctorReferralsTab doctorId={Number(activeDoctorId)} />
+          )}
         </div>
       </div>
     </div>

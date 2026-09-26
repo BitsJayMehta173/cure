@@ -104,12 +104,6 @@ function App() {
     }
   }, [selectedAppointment]);
 
-  useEffect(() => {
-    const handler = () => setActiveTab('booking');
-    window.addEventListener('nav-to-booking', handler);
-    return () => window.removeEventListener('nav-to-booking', handler);
-  }, []);
-
   const fetchMatches = async (isAI: boolean = false) => {
     setLoading(true);
     let url = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/search/state?state=${location}&condition=${disease}&urgency=${urgencyScore}`;
