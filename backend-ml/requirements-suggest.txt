@@ -1,0 +1,4 @@
+# Standalone clinical autocomplete service (suggest_server.py) — no PyTorch needed.
+flask>=3.0.0
+flask-cors>=4.0.0
+symspellpy>=6.7.0

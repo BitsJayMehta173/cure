@@ -10,6 +10,7 @@ Safety rules (medicine names are never silently changed):
 import bisect
 import math
 import re
+from array import array
 from collections import defaultdict
 
 from . import textproc as T
@@ -269,3 +270,13 @@ class MedicineIndex:
         state = self.__dict__.copy()
         state["_symspell"] = None
         return state
+
+    def __setstate__(self, state):
+        """Share identical compositions/forms and use typed arrays: much smaller in memory."""
+        self.__dict__.update(state)
+        seen = {}
+        self.comps = [seen.setdefault(c, c) for c in self.comps]
+        self.forms = [seen.setdefault(f, f) for f in self.forms]
+        self.discontinued = [bool(d) for d in self.discontinued]      # bools are singletons
+        self.base_score = array("f", self.base_score)
+        self.sorted_idx = array("i", self.sorted_idx)

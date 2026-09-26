@@ -8,6 +8,7 @@ Fields (sent by the frontend):
   medicine   : medicine                            → brand/generic search (never auto-replaced)
 Spelling checks run on report_body, advice, report_title and instructions.
 """
+import gc
 import gzip
 import os
 import pickle
@@ -68,6 +69,7 @@ class SuggestEngine:
         self.medicine = models["medicine"]
         self.phrases = models["phrases"]
         self.personal = PersonalStore(personal_path)
+        gc.collect()               # drop unpickling temporaries before serving
         self.load_seconds = round(time.time() - t0, 2)
 
     # ─── public API ──────────────────────────────────────────────────────

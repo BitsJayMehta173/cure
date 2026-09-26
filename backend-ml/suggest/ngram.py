@@ -11,6 +11,7 @@ doctor's personal model with the global one:
     surface(key)              -> preferred display form ("ECG", "paracetamol", "Tab.")
 """
 import bisect
+from array import array
 import math
 from collections import Counter, defaultdict
 
@@ -99,18 +100,46 @@ class NgramModel:
     def _ids(self, context_keys):
         return [self.index.get(k, -1) for k in context_keys]
 
+    # ─── compact in-memory form ──────────────────────────────────────────
+    # Pickles keep ctx as {tuple(ids): (total, ((id, count), ...))}. On load it is packed into
+    # {int: (array ids, array probabilities)}: ~10x fewer Python objects, so the service fits in
+    # a 512 MB instance.
+    @staticmethod
+    def _pack(ids):
+        k = len(ids)
+        for i in ids:
+            k = (k << 22) | i
+        return k
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        packed = {}
+        for c, (tot, conts) in self.ctx.items():
+            packed[self._pack(c)] = (array("i", [w for w, _ in conts]), array("f", [n / tot for _, n in conts]))
+        self.ctx = packed
+        self.sorted_ids = array("i", self.sorted_ids)
+        self.counts = array("d", self.counts)
+
+    def _entry(self, ids):
+        if -1 in ids:
+            return None
+        key = tuple(ids)
+        if isinstance(next(iter(self.ctx), None), tuple):      # freshly trained, not yet packed
+            e = self.ctx.get(key)
+            return (tuple(w for w, _ in e[1]), tuple(n / e[0] for _, n in e[1])) if e else None
+        return self.ctx.get(self._pack(key))
+
     def next_scores(self, context_keys):
         ids = self._ids(context_keys)
         scores = {}
         alpha = 1.0
         for L in (3, 2, 1):
             if len(ids) >= L:
-                entry = self.ctx.get(tuple(ids[-L:]))
+                entry = self._entry(ids[-L:])
                 if entry:
-                    tot, conts = entry
-                    for wid, cnt in conts:
+                    for wid, prob in zip(*entry):
                         k = self.keys[wid]
-                        s = alpha * cnt / tot
+                        s = alpha * prob
                         if s > scores.get(k, 0.0):
                             scores[k] = s
             alpha *= BACKOFF

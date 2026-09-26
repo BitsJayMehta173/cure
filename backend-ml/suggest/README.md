@@ -70,6 +70,20 @@ python -m suggest.evaluate     # ~40 s → EVALUATION.md, evaluation.json (retra
 
 Keep the code Python 3.10-compatible (the Docker image is `python:3.10-slim`).
 
+## Deploying (Render free tier, 512 MB)
+
+PyTorch plus the suggestion models don't fit in one 512 MB instance, so run them as two services from the same repo:
+
+| Render web service | Root directory | Dockerfile path | Env vars |
+|---|---|---|---|
+| ML scorer (existing) | `backend-ml` | `./Dockerfile` | `ENABLE_SUGGEST=0` |
+| Suggestions (new) | `backend-ml` | `./Dockerfile.suggest` | — (Render sets `PORT`) |
+
+Health check: `/health` for both. On Vercel, set `VITE_ML_URL` to the suggestions service URL (no trailing slash) and
+redeploy the frontend. The suggestions service uses about 350 MB. On the free tier its disk is wiped on every
+redeploy/restart, so per-doctor learning resets. For a pilot, attach a persistent disk and point `SUGGEST_PERSONAL_DB` at it.
+On a bigger single host, leave `ENABLE_SUGGEST` unset and `ml_server.py` serves both.
+
 ## API (`/api/suggest`)
 
 | Method | Path | Body → Response |

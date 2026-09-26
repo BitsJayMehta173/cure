@@ -1,0 +1,10 @@
+# Clinical autocomplete service only (suggest_server.py) — small image, ~350 MB RAM.
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements-suggest.txt .
+RUN pip install --no-cache-dir -r requirements-suggest.txt
+COPY suggest/ suggest/
+COPY suggest_server.py .
+ENV PYTHONUNBUFFERED=1
+EXPOSE 5001
+CMD ["python", "suggest_server.py"]

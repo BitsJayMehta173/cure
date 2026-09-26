@@ -13,7 +13,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
 CORS(app)
-app.register_blueprint(suggest_bp)   # /api/suggest/* — clinical autocomplete & autocorrect
+# /api/suggest/* — clinical autocomplete. On small hosts set ENABLE_SUGGEST=0 here and run
+# suggest_server.py as its own service (see suggest/README.md → Deploying).
+ENABLE_SUGGEST = os.environ.get("ENABLE_SUGGEST", "1") != "0"
+if ENABLE_SUGGEST:
+    app.register_blueprint(suggest_bp)
 
 features = ['urgency', 'wait_days', 'distance_km', 'exp_years',
             'queue_speed_mins', 'financial_cost_index', 'total_round_trip_hrs',
@@ -90,6 +94,7 @@ def predict():
     return jsonify(preds)
 
 if __name__ == '__main__':
-    warm_up_suggestions()
+    if ENABLE_SUGGEST:
+        warm_up_suggestions()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
