@@ -1,0 +1,101 @@
+{
+  "training": {
+    "mtsamples_docs": 2122,
+    "mt_report_sentences": 75757,
+    "mt_advice_sentences": 3961,
+    "synthetic_report": 9000,
+    "synthetic_advice": 5000
+  },
+  "keystroke_savings": {
+    "indian_opd_report": {
+      "sentences": 250,
+      "characters": 8759,
+      "keystrokes": 3811,
+      "savings_pct": 56.5,
+      "ghosts_accepted": 628
+    },
+    "indian_opd_advice": {
+      "sentences": 250,
+      "characters": 8196,
+      "keystrokes": 2098,
+      "savings_pct": 74.4,
+      "ghosts_accepted": 540
+    },
+    "us_transcription_report": {
+      "sentences": 150,
+      "characters": 12056,
+      "keystrokes": 8841,
+      "savings_pct": 26.7,
+      "ghosts_accepted": 814
+    }
+  },
+  "next_word_top3": {
+    "indian_opd_report": {
+      "predictions": 2012,
+      "top3_pct": 79.2
+    },
+    "us_transcription_report": {
+      "predictions": 4932,
+      "top3_pct": 42.2
+    }
+  },
+  "completion_at_2_letters": {
+    "indian_opd_report": {
+      "words": 646,
+      "top3_pct": 89.8
+    },
+    "us_transcription_report": {
+      "words": 1189,
+      "top3_pct": 62.0
+    }
+  },
+  "autocorrect": {
+    "typos": 1000,
+    "flagged_pct": 98.9,
+    "top1_fixed_pct": 95.3,
+    "top3_fixed_pct": 98.8
+  },
+  "false_alarms": {
+    "indian_opd": {
+      "words": 3512,
+      "false_alarms": 0,
+      "rate_pct": 0.0,
+      "examples": []
+    },
+    "us_transcription": {
+      "words": 5135,
+      "false_alarms": 7,
+      "rate_pct": 0.14,
+      "examples": [
+        "oxacillin",
+        "redraped",
+        "plana",
+        "superonasal",
+        "placud",
+        "thoracostomy",
+        "dysesthesias"
+      ]
+    }
+  },
+  "shorthand_safety": {
+    "shorthand_tokens": 940,
+    "wrongly_flagged": 0
+  },
+  "medicine": {
+    "random_brands": {
+      "top5_after_3_chars_pct": 8.8,
+      "top5_after_4_chars_pct": 34.6,
+      "top5_after_6_chars_pct": 84.8,
+      "count": 500
+    },
+    "common_opd_brands": {
+      "top5_after_3_chars_pct": 89.8,
+      "top5_after_4_chars_pct": 95.2,
+      "top5_after_6_chars_pct": 99.4,
+      "count": 167
+    },
+    "typo_in_brand_top5_pct": 93.1,
+    "typo_cases": 130
+  },
+  "seconds": 37.6
+}

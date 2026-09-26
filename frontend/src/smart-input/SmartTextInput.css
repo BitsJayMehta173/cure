@@ -1,0 +1,136 @@
+/* SmartTextInput — ghost text, misspelling underlines and suggestion list for doctor inputs. */
+
+.sti-wrap {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+/* The real field sits on top with a transparent background… */
+.sti-wrap .sti-field {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* …and the mirror underneath renders the same text (invisible) plus ghost text and underlines. */
+.sti-mirror {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  overflow: hidden;
+  color: transparent;
+  border-style: solid;
+  border-color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+.sti-mirror.multiline { white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; }
+.sti-mirror.single { white-space: pre; }
+
+.sti-ghost { color: #9aa7b4; }
+
+.sti-misspelt {
+  color: transparent;
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: #e11d48;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+/* ─── Suggestion list ─────────────────────────────────────────────── */
+.sti-list {
+  position: absolute;
+  z-index: 50;
+  min-width: 240px;
+  max-width: min(460px, 100%);
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #d6e4ea;
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 42, 56, 0.16);
+}
+.sti-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.sti-item.active { background: #e6f4f1; }
+.sti-item-text { font-size: 14px; font-weight: 600; color: #1c2a38; }
+.sti-item-detail { font-size: 12px; color: #607280; }
+.sti-item.brand .sti-item-detail { color: #0f766e; }
+.sti-item.generic .sti-item-text { color: #006078; }
+.sti-badge {
+  display: inline-block;
+  margin: 0 6px 0 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+.sti-badge.fuzzy { background: #fef3c7; color: #92400e; }
+.sti-badge.off { margin: 0 0 0 6px; background: #fee2e2; color: #991b1b; }
+.sti-hint {
+  padding: 5px 10px 3px;
+  font-size: 11px;
+  color: #8a99a6;
+  border-top: 1px solid #eef3f5;
+  margin-top: 3px;
+}
+.sti-hint kbd {
+  display: inline-block;
+  padding: 0 4px;
+  border: 1px solid #d6e4ea;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 10px;
+  background: #f7fafb;
+}
+
+/* ─── Misspelling fix popover ─────────────────────────────────────── */
+.sti-fix {
+  position: absolute;
+  z-index: 60;
+  width: 240px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #d6e4ea;
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 42, 56, 0.16);
+}
+.sti-fix-title { font-size: 11px; font-weight: 700; color: #8a99a6; text-transform: uppercase; letter-spacing: 0.04em; }
+.sti-fix-options { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.sti-fix-btn {
+  padding: 5px 10px;
+  border: 1px solid #0f766e;
+  border-radius: 7px;
+  background: #f0fdfa;
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sti-fix-btn:hover { background: #ccfbf1; }
+.sti-fix-actions { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid #eef3f5; padding-top: 6px; }
+.sti-fix-actions button {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  color: #475569;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.sti-fix-actions button:hover { color: #0f172a; text-decoration: underline; }

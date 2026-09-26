@@ -5,9 +5,15 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import numpy as np
+import os
+
+from suggest.routes import bp as suggest_bp, warm_up as warm_up_suggestions
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
 CORS(app)
+app.register_blueprint(suggest_bp)   # /api/suggest/* — clinical autocomplete & autocorrect
 
 features = ['urgency', 'wait_days', 'distance_km', 'exp_years',
             'queue_speed_mins', 'financial_cost_index', 'total_round_trip_hrs',
@@ -35,12 +41,12 @@ class ClinicalNet(nn.Module):
         return x
 
 print("Loading Scaler...")
-with open('scaler.pkl', 'rb') as f:
+with open(os.path.join(BASE_DIR, 'scaler.pkl'), 'rb') as f:
     scaler = pickle.load(f)
 
 print("Loading PyTorch ML model...")
 model = ClinicalNet(len(features))
-model.load_state_dict(torch.load('medroute_nn_model.pt', weights_only=True))
+model.load_state_dict(torch.load(os.path.join(BASE_DIR, 'medroute_nn_model.pt'), weights_only=True))
 model.eval()
 
 @app.route('/health', methods=['GET'])
@@ -84,6 +90,6 @@ def predict():
     return jsonify(preds)
 
 if __name__ == '__main__':
-    import os
+    warm_up_suggestions()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

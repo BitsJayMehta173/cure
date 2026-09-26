@@ -8,7 +8,7 @@ Healthcare appointment routing: patients find/book doctors across Indian states 
 |---|---|---|---|
 | Frontend — React 19, TS, Vite, plain CSS, no router/state lib | `frontend/` | `npm run dev` · check: `npx tsc -b`, `npm run lint` (oxlint) | 5173 |
 | Backend — Spring Boot 3.2, Java 21, JPA, Flyway | `backend-java/` | `mvn spring-boot:run` · check: `mvn -q compile` | 8080 |
-| ML scorer — Flask + PyTorch | `backend-ml/` | `python ml_server.py` | 5000 |
+| ML — Flask + PyTorch (search scorer) + clinical autocomplete (`suggest/`) | `backend-ml/` | `python ml_server.py` (Python 3.12 locally: `py -3.12`; keep code 3.10-compatible for Docker) | 5000 |
 | DB — PostgreSQL 17 (`pg_trgm` for fuzzy doctor search) | `docker-compose.yml` | | 5432 |
 
 Config: `backend-java/src/main/resources/application.yml` (imports `../.env`). Frontend base URL: `import.meta.env.VITE_API_URL || 'http://localhost:8080'`. No test suite exists.
@@ -77,6 +77,15 @@ Layers: `controller` → `service` → `repository` (Spring Data). Field `@Autow
 - Cross-component window event: `medroute:exit-doctor-mode`.
 - Doctor/staff pages call `fetch` directly; patient features go through the `api/` modules. `getCurrentUserId()` is duplicated per module by convention.
 
+## Clinical autocomplete (`backend-ml/suggest/`, `frontend/src/smart-input/`)
+
+- "Grammarly for doctors": ghost-text completion, next-word picks and click-to-fix spelling underlines. Used **only** in the doctor's report (title, body), prescription (medicine, dosage, frequency, duration, instructions) and general-advice inputs, not in search boxes. Full details: `backend-ml/suggest/README.md`; held-out quality numbers: `suggest/EVALUATION.md`.
+- Backend: Flask blueprint `suggest/routes.py` at `/api/suggest` (`health`, `complete`, `check`, `learn`, `dictionary`), registered in `ml_server.py`, and warm-loaded in a background thread (503 until ready). `engine.py` routes per field. Uses n-gram models (`ngram.py`), SymSpell (`corrector.py`), a 254k-SKU Indian medicine index (`medicine.py`) and phrase lists (`phrases.py`, `vocab_lists.py`).
+- Models: `suggest/models/*.pkl.gz` (~12 MB, committed). Rebuild with `python -m suggest.build`, from raw CSVs in the gitignored `suggest/data/raw/` (sources and checksums in the README). `python -m suggest.evaluate` rewrites EVALUATION.md.
+- Per-doctor learning: the frontend posts saved text to `/learn`. It is stored in `suggest/data/personal.sqlite` (gitignored; contains clinical text), and each doctor's profile only affects their own suggestions.
+- Frontend: `SmartTextInput` (a drop-in for `<input>`/`<textarea>` via `field`, `value`, `onChange(value)`, `doctorId`, `multiline`, `context={{ medicine }}`) renders a mirror overlay for ghost text and underlines. `suggestApi.ts` calls `VITE_ML_URL || http://127.0.0.1:5000`: use 127.0.0.1, because `localhost` costs ~200 ms per call on Windows. It never throws and backs off for 30 s when the ML server is down, so the inputs then behave as plain fields. To add a field, give it a new `SuggestField` and a backend entry in `engine.py` (`FREE_FIELDS`/`PHRASE_FIELDS`/`CHECK_FIELDS`), then call `suggestApi.learn` after a successful save.
+- Keys: `Tab` accepts the highlighted item, else the ghost; `→` at the end accepts the ghost; `↓` opens the list; `Esc` dismisses.
+
 ## Referral lifecycle
 
 - **CONSULT (second opinion):** `REQUESTED` → `RESPONDED` (referred doctor sends findings) → closed when the referring doctor completes the visit. Source visit shows `referred` → `feedback_received` → `completed`.
@@ -98,4 +107,5 @@ Layers: `controller` → `service` → `repository` (Spring Data). Field `@Autow
 - Calendar only shows the current month (`CalendarStep`, doctor finalize calendars).
 - Doctor photos are stored as base64 data URLs in `doctor.photo_url` (TEXT).
 - Dev servers started from the Claude app preview pane stop when the app closes the pane — if logins suddenly fail, check that the backend is listening on :8080 (`curl localhost:8080/actuator/health`).
+- Launch configs in `.claude/launch.json`; `ml` runs `py -3.12 backend-ml/ml_server.py` (the MSYS `python` on PATH has no pip). After pulling, run `pip install -r backend-ml/requirements.txt` (adds `symspellpy`).
 - `medroute_context_for_llms.md` is outdated (predates roles, records, referrals).

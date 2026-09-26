@@ -4,14 +4,33 @@
     {
       "name": "backend",
       "runtimeExecutable": "mvn",
-      "runtimeArgs": ["-f", "backend-java/pom.xml", "spring-boot:run", "-Dspring-boot.run.jvmArguments=-Djdk.net.unixdomain.tmpdir=D:/newprojects/jos/backend-java/target"],
+      "runtimeArgs": [
+        "-f",
+        "backend-java/pom.xml",
+        "spring-boot:run",
+        "-Dspring-boot.run.jvmArguments=-Djdk.net.unixdomain.tmpdir=D:/newprojects/jos/backend-java/target"
+      ],
       "port": 8080
     },
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "ml",
+      "runtimeExecutable": "py",
+      "runtimeArgs": [
+        "-3.12",
+        "backend-ml/ml_server.py"
+      ],
+      "port": 5000
     }
   ]
 }

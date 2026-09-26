@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import './referrals.css';
 import type { CaseRecords, Ownership } from '../types/referral.types';
 import { caseRecordsApi, type RecordTarget } from '../api/referralApi';
+import { SmartTextInput } from '../../smart-input/SmartTextInput';
+import { suggestApi } from '../../smart-input/suggestApi';
 
 export type CaseSection = 'reports' | 'prescriptions' | 'notes';
 
@@ -103,15 +105,22 @@ export const CaseRecordsPanel: React.FC<CaseRecordsPanelProps> = ({
               <form
                 onSubmit={e => {
                   e.preventDefault();
-                  submit(() => caseRecordsApi.addReport(doctorId, target, { ...report, reportType: 'text' }),
-                    () => setReport({ title: '', textContent: '' }));
+                  const saved = { ...report };
+                  submit(async () => {
+                    await caseRecordsApi.addReport(doctorId, target, { ...saved, reportType: 'text' });
+                    // teach this doctor's personal suggestion model (only after a successful save)
+                    suggestApi.learn('report_title', saved.title, doctorId);
+                    suggestApi.learn('report_body', saved.textContent, doctorId);
+                  }, () => setReport({ title: '', textContent: '' }));
                 }}
                 style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
               >
-                <input type="text" placeholder="Report Title (e.g., Echo findings)" value={report.title}
-                  onChange={e => setReport({ ...report, title: e.target.value })} className="dd-advice-textarea" style={{ minHeight: 40 }} required />
-                <textarea placeholder="Report Details / Content" value={report.textContent}
-                  onChange={e => setReport({ ...report, textContent: e.target.value })} className="dd-advice-textarea" rows={4} required />
+                <SmartTextInput field="report_title" doctorId={doctorId} placeholder="Report Title (e.g., Echo findings)"
+                  value={report.title} onChange={v => setReport(r => ({ ...r, title: v }))}
+                  className="dd-advice-textarea" style={{ minHeight: 40 }} required />
+                <SmartTextInput field="report_body" doctorId={doctorId} multiline rows={4} placeholder="Report Details / Content"
+                  value={report.textContent} onChange={v => setReport(r => ({ ...r, textContent: v }))}
+                  className="dd-advice-textarea" required />
                 <div className="rf-form-foot">
                   <button type="submit" className="doc-btn-primary" disabled={saving}>
                     {saving ? 'Saving…' : 'Add Report'}
@@ -152,22 +161,36 @@ export const CaseRecordsPanel: React.FC<CaseRecordsPanelProps> = ({
               <form
                 onSubmit={e => {
                   e.preventDefault();
-                  submit(() => caseRecordsApi.addPrescription(doctorId, target, med), () => setMed(emptyMed));
+                  const saved = { ...med };
+                  submit(async () => {
+                    await caseRecordsApi.addPrescription(doctorId, target, saved);
+                    const ctx = { medicine: saved.medicineName };
+                    suggestApi.learn('medicine', saved.medicineName, doctorId);
+                    suggestApi.learn('dosage', saved.dosage, doctorId, ctx);
+                    suggestApi.learn('frequency', saved.frequency, doctorId, ctx);
+                    suggestApi.learn('duration', saved.duration, doctorId, ctx);
+                    suggestApi.learn('instructions', saved.instructions, doctorId, ctx);
+                  }, () => setMed(emptyMed));
                 }}
                 style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
               >
-                <input type="text" placeholder="Medicine Name" value={med.medicineName}
-                  onChange={e => setMed({ ...med, medicineName: e.target.value })} className="dd-advice-textarea" style={{ minHeight: 40 }} required />
+                <SmartTextInput field="medicine" doctorId={doctorId} placeholder="Medicine Name (e.g., Dolo 650)"
+                  value={med.medicineName} onChange={v => setMed(m => ({ ...m, medicineName: v }))}
+                  className="dd-advice-textarea" style={{ minHeight: 40 }} required />
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <input type="text" placeholder="Dosage (e.g., 500mg)" value={med.dosage}
-                    onChange={e => setMed({ ...med, dosage: e.target.value })} className="dd-advice-textarea" style={{ minHeight: 40, flex: 1 }} />
-                  <input type="text" placeholder="Frequency (e.g., Twice daily)" value={med.frequency}
-                    onChange={e => setMed({ ...med, frequency: e.target.value })} className="dd-advice-textarea" style={{ minHeight: 40, flex: 1 }} />
+                  <SmartTextInput field="dosage" doctorId={doctorId} context={{ medicine: med.medicineName }}
+                    placeholder="Dosage (e.g., 500mg)" value={med.dosage} onChange={v => setMed(m => ({ ...m, dosage: v }))}
+                    className="dd-advice-textarea" style={{ minHeight: 40 }} wrapperStyle={{ flex: 1 }} />
+                  <SmartTextInput field="frequency" doctorId={doctorId} context={{ medicine: med.medicineName }}
+                    placeholder="Frequency (e.g., BD)" value={med.frequency} onChange={v => setMed(m => ({ ...m, frequency: v }))}
+                    className="dd-advice-textarea" style={{ minHeight: 40 }} wrapperStyle={{ flex: 1 }} />
                 </div>
-                <input type="text" placeholder="Duration (e.g., 5 days)" value={med.duration}
-                  onChange={e => setMed({ ...med, duration: e.target.value })} className="dd-advice-textarea" style={{ minHeight: 40 }} />
-                <textarea placeholder="Instructions" value={med.instructions}
-                  onChange={e => setMed({ ...med, instructions: e.target.value })} className="dd-advice-textarea" rows={2} />
+                <SmartTextInput field="duration" doctorId={doctorId} context={{ medicine: med.medicineName }}
+                  placeholder="Duration (e.g., 5 days)" value={med.duration} onChange={v => setMed(m => ({ ...m, duration: v }))}
+                  className="dd-advice-textarea" style={{ minHeight: 40 }} />
+                <SmartTextInput field="instructions" doctorId={doctorId} context={{ medicine: med.medicineName }} multiline rows={2}
+                  placeholder="Instructions (e.g., After food)" value={med.instructions} onChange={v => setMed(m => ({ ...m, instructions: v }))}
+                  className="dd-advice-textarea" />
                 <div className="rf-form-foot">
                   <button type="submit" className="doc-btn-primary" disabled={saving}>
                     {saving ? 'Saving…' : 'Add Medicine'}

@@ -1,0 +1,22 @@
+{
+  "mtsamples_docs": 2357,
+  "mt_report_sentences": 84284,
+  "mt_advice_sentences": 4390,
+  "synthetic_report": 9000,
+  "synthetic_advice": 5000,
+  "built_seconds": 35.6,
+  "report_vocab": 16949,
+  "report_contexts": 212415,
+  "advice_vocab": 6989,
+  "advice_contexts": 35854,
+  "spelling_dictionary": 28988,
+  "medicines": 253973,
+  "generics": 1710,
+  "file_sizes_mb": {
+    "text_report.pkl.gz": 3.4,
+    "text_advice.pkl.gz": 1.14,
+    "corrector.pkl.gz": 1.18,
+    "medicine.pkl.gz": 6.23,
+    "phrases.pkl.gz": 0.02
+  }
+}

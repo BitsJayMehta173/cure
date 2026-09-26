@@ -1,7 +1,8 @@
-﻿__pycache__/
+__pycache__/
 *.pyc
 .env
 .git/
 .idea/
 .vscode/
 venv/
+suggest/data/

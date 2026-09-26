@@ -6,6 +6,8 @@ import { PatientProfileView } from '../components/PatientProfileView';
 import { referralApi, followUpApi, caseRecordsApi } from '../referrals/api/referralApi';
 import { CaseRecordsPanel } from '../referrals/components/CaseRecordsPanel';
 import { ReferredFromInfo } from '../referrals/components/ReferredFromInfo';
+import { SmartTextInput } from '../smart-input/SmartTextInput';
+import { suggestApi } from '../smart-input/suggestApi';
 import type { AppointmentDisplayStatus, AppointmentStatus, Referral } from '../referrals/types/referral.types';
 import { StatusBadge, StatusTimeline } from '../referrals/components/StatusTimeline';
 import { SlotPicker } from '../referrals/components/SlotPicker';
@@ -683,6 +685,7 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
       }
       setAdviceLocked(true);
       setAdviceSaved(true);
+      suggestApi.learn('advice', advice, doctorId);
       setTimeout(() => setAdviceSaved(false), 3000);
     } catch (e: any) {
       setAdviceError(e?.message || 'Could not save advice.');
@@ -835,11 +838,14 @@ const DoctorAptDetail: React.FC<DoctorAptDetailProps> = ({ appointment, doctorId
                     Add clinical notes, lifestyle recommendations, or follow-up instructions for this patient's visit.
                     {' '}🔒 Once saved, advice can't be edited.
                   </p>
-                  <textarea
-                    className="dd-advice-textarea"
+                  <SmartTextInput
+                    field="advice"
+                    doctorId={doctorId}
+                    multiline
                     rows={8}
+                    className="dd-advice-textarea"
                     value={advice}
-                    onChange={e => setAdvice(e.target.value)}
+                    onChange={setAdvice}
                     placeholder="e.g. Take rest for 3 days. Avoid spicy food. Follow up in 2 weeks. Drink plenty of water..."
                   />
                   <div className="dd-advice-actions">

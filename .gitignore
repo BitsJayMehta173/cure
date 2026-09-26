@@ -1,4 +1,4 @@
-﻿# Environments
+# Environments
 .env
 .env.*
 !.env.example
@@ -50,3 +50,6 @@ db/
 # ...but keep the Flyway migrations (matched by db/ above)
 !backend-java/src/main/resources/db/
 *.csv
+
+# Clinical autocomplete (Phase 2): raw datasets are downloaded, doctors' personal models stay local
+backend-ml/suggest/data/
