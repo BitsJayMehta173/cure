@@ -35,14 +35,35 @@ public class Referral {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "referral_type", nullable = false)
-    private String referralType = "FULL_PATIENT"; // FULL_PATIENT or SINGLE_CASE
-
-    @Column(name = "referral_status", nullable = false)
-    private String referralStatus = "pending"; // pending, analysed, booked
-
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    // ─── State machine (source of truth — see ReferralService) ─────────────
+    @Enumerated(EnumType.STRING)
+    @Column(name = "kind", nullable = false, length = 20)
+    private ReferralKind kind = ReferralKind.CONSULT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "scope", nullable = false, length = 20)
+    private ReferralScope scope = ReferralScope.CASE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 30)
+    private ReferralStatus status = ReferralStatus.REQUESTED;
+
+    /** The referred doctor's findings (CONSULT) — kept here, never on the referring doctor's appointment. */
+    @Column(name = "response_notes", columnDefinition = "TEXT")
+    private String responseNotes;
+
+    @Column(name = "responded_at")
+    private LocalDateTime respondedAt;
+
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+
+    /** Set when the referral is finished (consult reviewed at finalize, follow-up booked, declined, cancelled). */
+    @Column(name = "closed_at")
+    private LocalDateTime closedAt;
 
     public Referral() {
         this.createdAt = LocalDateTime.now();
@@ -62,10 +83,20 @@ public class Referral {
     public void setFollowUpAppointment(Appointment followUpAppointment) { this.followUpAppointment = followUpAppointment; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
-    public String getReferralType() { return referralType; }
-    public void setReferralType(String referralType) { this.referralType = referralType; }
-    public String getReferralStatus() { return referralStatus; }
-    public void setReferralStatus(String referralStatus) { this.referralStatus = referralStatus; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public ReferralKind getKind() { return kind; }
+    public void setKind(ReferralKind kind) { this.kind = kind; }
+    public ReferralScope getScope() { return scope; }
+    public void setScope(ReferralScope scope) { this.scope = scope; }
+    public ReferralStatus getStatus() { return status; }
+    public void setStatus(ReferralStatus status) { this.status = status; }
+    public String getResponseNotes() { return responseNotes; }
+    public void setResponseNotes(String responseNotes) { this.responseNotes = responseNotes; }
+    public LocalDateTime getRespondedAt() { return respondedAt; }
+    public void setRespondedAt(LocalDateTime respondedAt) { this.respondedAt = respondedAt; }
+    public LocalDateTime getAcceptedAt() { return acceptedAt; }
+    public void setAcceptedAt(LocalDateTime acceptedAt) { this.acceptedAt = acceptedAt; }
+    public LocalDateTime getClosedAt() { return closedAt; }
+    public void setClosedAt(LocalDateTime closedAt) { this.closedAt = closedAt; }
 }

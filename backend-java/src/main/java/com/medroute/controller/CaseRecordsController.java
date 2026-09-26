@@ -1,59 +1,50 @@
 package com.medroute.controller;
 
+import com.medroute.dto.MedicalReportDTO;
+import com.medroute.dto.PrescriptionDTO;
+import com.medroute.dto.ReferralViews.*;
+import com.medroute.service.CaseRecordsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Stub controller for Case Records API called from Doctor Portal.
+ * Doctor-facing case file: reports / prescriptions / notes of a visit and its care
+ * chain, with ownership on every item. Records are append-only — once written they
+ * cannot be edited. Writes are validated by CaseRecordsService.
+ *
+ * Base path: /api/case-records
  */
 @RestController
 @RequestMapping("/api/case-records")
 @CrossOrigin(origins = "*")
 public class CaseRecordsController {
 
-    @GetMapping("/appointment/{appointmentId}")
-    public ResponseEntity<Map<String, Object>> getRecordsForAppointment(
-            @PathVariable Long appointmentId,
-            @RequestParam Long doctorId) {
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("appointmentId", appointmentId);
-        response.put("referralId", null);
-        response.put("canAdd", true);
-        response.put("reports", new ArrayList<>());
-        response.put("prescriptions", new ArrayList<>());
-        response.put("notes", new ArrayList<>());
-        
-        return ResponseEntity.ok(response);
+    @Autowired
+    private CaseRecordsService caseRecordsService;
+
+    /** GET /api/case-records/appointment/{id}?doctorId= — visit + inherited records. */
+    @GetMapping("/appointment/{id}")
+    public CaseRecordsView forAppointment(@PathVariable Long id, @RequestParam Long doctorId) {
+        return caseRecordsService.forAppointment(id, doctorId);
     }
 
-    @GetMapping("/referral/{referralId}")
-    public ResponseEntity<Map<String, Object>> getRecordsForReferral(
-            @PathVariable Long referralId,
-            @RequestParam Long doctorId) {
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("appointmentId", null);
-        response.put("referralId", referralId);
-        response.put("canAdd", true);
-        response.put("reports", new ArrayList<>());
-        response.put("prescriptions", new ArrayList<>());
-        response.put("notes", new ArrayList<>());
-        
-        return ResponseEntity.ok(response);
+    /** GET /api/case-records/referral/{id}?doctorId= — the case file shared by a referral. */
+    @GetMapping("/referral/{id}")
+    public CaseRecordsView forReferral(@PathVariable Long id, @RequestParam Long doctorId) {
+        return caseRecordsService.forReferral(id, doctorId);
     }
 
+    /** POST /api/case-records/reports — body: { doctorId, appointmentId | referralId, title, textContent, reportType?, fileUrl? } */
     @PostMapping("/reports")
-    public ResponseEntity<?> addReport(@RequestBody Map<String, Object> payload) {
-        return ResponseEntity.ok(Map.of("success", true, "message", "Report added successfully"));
+    public ResponseEntity<MedicalReportDTO> addReport(@RequestBody AddReportRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(caseRecordsService.addReport(req));
     }
 
+    /** POST /api/case-records/prescriptions — body: { doctorId, appointmentId | referralId, medicineName, dosage, frequency, duration, instructions } */
     @PostMapping("/prescriptions")
-    public ResponseEntity<?> addPrescription(@RequestBody Map<String, Object> payload) {
-        return ResponseEntity.ok(Map.of("success", true, "message", "Prescription added successfully"));
+    public ResponseEntity<PrescriptionDTO> addPrescription(@RequestBody AddPrescriptionRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(caseRecordsService.addPrescription(req));
     }
 }

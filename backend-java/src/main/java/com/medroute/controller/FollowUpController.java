@@ -1,44 +1,46 @@
 package com.medroute.controller;
 
+import com.medroute.dto.ReferralViews.*;
+import com.medroute.service.FollowUpService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Stub controller for Follow-Up API called from Doctor Portal.
+ * Same-doctor follow-ups (replaces self-referrals).
+ *
+ * Base path: /api/follow-ups
  */
 @RestController
 @RequestMapping("/api/follow-ups")
 @CrossOrigin(origins = "*")
 public class FollowUpController {
 
+    @Autowired
+    private FollowUpService followUpService;
+
+    /**
+     * POST /api/follow-ups — body: { sourceAppointmentId, doctorId, date?, notes }
+     * Finalizes the source visit; books immediately when date is given, else leaves it OPEN for the patient.
+     */
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createFollowUp(@RequestBody Map<String, Object> payload) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", System.currentTimeMillis() % 10000);
-        response.put("status", payload.get("date") != null ? "BOOKED" : "OPEN");
-        response.put("notes", payload.get("notes"));
-        response.put("createdAt", java.time.LocalDateTime.now().toString());
-        response.put("actions", new ArrayList<>());
-        
-        return ResponseEntity.ok(response);
+    public ResponseEntity<FollowUpView> create(@RequestBody CreateFollowUpRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(followUpService.create(
+                req.sourceAppointmentId(), req.doctorId(), ReferralController.parseDate(req.date()), req.notes()));
     }
 
+    /** GET /api/follow-ups/patient?userId= */
     @GetMapping("/patient")
-    public ResponseEntity<List<Map<String, Object>>> getFollowUpsForPatient(@RequestParam Long userId) {
-        return ResponseEntity.ok(new ArrayList<>());
+    public List<FollowUpView> forPatient(@RequestParam Long userId) {
+        return followUpService.forUser(userId);
     }
 
+    /** POST /api/follow-ups/{id}/book — body: { userId, date } */
     @PostMapping("/{id}/book")
-    public ResponseEntity<Map<String, Object>> bookFollowUp(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", id);
-        response.put("status", "BOOKED");
-        response.put("actions", new ArrayList<>());
-        return ResponseEntity.ok(response);
+    public FollowUpView book(@PathVariable Long id, @RequestBody ActorRequest req) {
+        return followUpService.bookByPatient(id, req.userId(), ReferralController.parseDate(req.date()));
     }
 }

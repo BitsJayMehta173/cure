@@ -10,6 +10,8 @@ public class MedicalReportDTO {
     private String fileUrl;
     private LocalDate reportDate;
     private String authorName;
+    private Long authorDoctorId;
+    private Long referralId;
 
     public MedicalReportDTO() {}
 
@@ -27,4 +29,8 @@ public class MedicalReportDTO {
     public void setReportDate(LocalDate reportDate) { this.reportDate = reportDate; }
     public String getAuthorName() { return authorName; }
     public void setAuthorName(String authorName) { this.authorName = authorName; }
+    public Long getAuthorDoctorId() { return authorDoctorId; }
+    public void setAuthorDoctorId(Long authorDoctorId) { this.authorDoctorId = authorDoctorId; }
+    public Long getReferralId() { return referralId; }
+    public void setReferralId(Long referralId) { this.referralId = referralId; }
 }

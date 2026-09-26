@@ -1,0 +1,2 @@
+ALTER TABLE user_account ADD COLUMN role VARCHAR(20) DEFAULT 'PATIENT';
+ALTER TABLE user_account ADD COLUMN doctor_id BIGINT;

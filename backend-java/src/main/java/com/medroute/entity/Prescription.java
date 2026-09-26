@@ -15,7 +15,7 @@ public class Prescription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "appointment_id", nullable = false)
+    @Column(name = "appointment_id") // null only for records on a FULL_HISTORY referral (see referralId)
     private Long appointmentId;
 
     @Column(name = "medicine_name", nullable = false)
@@ -33,6 +33,30 @@ public class Prescription {
 
     @Column(name = "author_name")
     private String authorName;
+
+    /** Set when written by a referred doctor as part of a referral (not the visit's own doctor). */
+    @Column(name = "referral_id")
+    private Long referralId;
+
+    @Column(name = "author_doctor_id")
+    private Long authorDoctorId;
+
+    // ─── Handover copies (V13) ───────────────────────────────────
+    /** Frozen copy in a handover packet (referralId = the TRANSFER referral). Never shown as live data. */
+    @Column(name = "is_snapshot", nullable = false)
+    private boolean snapshot = false;
+
+    /** Record this was copied from (original → packet → imported). */
+    @Column(name = "source_record_id")
+    private Long sourceRecordId;
+
+    /** Visit the original record belonged to (for provenance on copies). */
+    @Column(name = "source_appointment_id")
+    private Long sourceAppointmentId;
+
+    /** Set on records imported into a visit from a handover packet. */
+    @Column(name = "imported_from_referral_id")
+    private Long importedFromReferralId;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -52,4 +76,16 @@ public class Prescription {
     public void setPrescribedDate(LocalDate prescribedDate) { this.prescribedDate = prescribedDate; }
     public String getAuthorName() { return authorName; }
     public void setAuthorName(String authorName) { this.authorName = authorName; }
+    public Long getReferralId() { return referralId; }
+    public void setReferralId(Long referralId) { this.referralId = referralId; }
+    public Long getAuthorDoctorId() { return authorDoctorId; }
+    public void setAuthorDoctorId(Long authorDoctorId) { this.authorDoctorId = authorDoctorId; }
+    public boolean isSnapshot() { return snapshot; }
+    public void setSnapshot(boolean snapshot) { this.snapshot = snapshot; }
+    public Long getSourceRecordId() { return sourceRecordId; }
+    public void setSourceRecordId(Long sourceRecordId) { this.sourceRecordId = sourceRecordId; }
+    public Long getSourceAppointmentId() { return sourceAppointmentId; }
+    public void setSourceAppointmentId(Long sourceAppointmentId) { this.sourceAppointmentId = sourceAppointmentId; }
+    public Long getImportedFromReferralId() { return importedFromReferralId; }
+    public void setImportedFromReferralId(Long importedFromReferralId) { this.importedFromReferralId = importedFromReferralId; }
 }

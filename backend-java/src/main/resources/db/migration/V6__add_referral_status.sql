@@ -1,0 +1,1 @@
+ALTER TABLE referral ADD COLUMN IF NOT EXISTS referral_status VARCHAR(20) NOT NULL DEFAULT 'pending';

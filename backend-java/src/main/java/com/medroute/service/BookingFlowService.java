@@ -35,6 +35,7 @@ public class BookingFlowService {
     @Autowired private AppointmentRepository appointmentRepository;
     @Autowired private HolidayRepository holidayRepository;
     @Autowired private CancellationRepository cancellationRepository;
+    @Autowired private org.springframework.context.ApplicationEventPublisher events;
 
     // ═══════════════════════════════════════════════════════════════════════
     // PROFILE MANAGEMENT
@@ -540,6 +541,17 @@ public class BookingFlowService {
         return pos;
     }
 
+    /**
+     * Expected consultation time for an existing appointment ("10:30 AM"), based on
+     * its current queue position. Null for cancelled/untokened appointments.
+     */
+    public String expectedTimeFor(Appointment a) {
+        if (a.getDoctor() == null || a.getTokenNum() == null || "cancelled".equals(a.getStatus())) return null;
+        int avgMins = Optional.ofNullable(a.getDoctor().getAvgMinutesPerPatient()).orElse(15);
+        int queuePos = computeQueuePosition(a.getDoctor().getId(), LocalDate.parse(a.getDateStr()), a.getTokenNum());
+        return formatTime(LocalTime.of(9, 0).plusMinutes((long) (Math.max(queuePos, 1) - 1) * avgMins));
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // APPOINTMENT MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
@@ -597,6 +609,8 @@ public class BookingFlowService {
         cancellation.setPatientName(appt.getPatientName());
         cancellation.setCancelledAt(LocalDateTime.now());
         cancellationRepository.save(cancellation);
+
+        events.publishEvent(new AppointmentCancelledEvent(appt.getId()));
     }
 
     @Transactional

@@ -79,16 +79,6 @@ public class PatientRecordsService {
     }
 
     @Transactional
-    public PrescriptionDTO addMedicine(Prescription prescription) {
-        return toPrescriptionDTO(prescriptionRepository.save(prescription));
-    }
-
-    @Transactional
-    public MedicalReportDTO addReport(MedicalReport report) {
-        return toReportDTO(medicalReportRepository.save(report));
-    }
-
-    @Transactional
     public void markPatientNotificationsRead(Long patientId, Long userAccountId) {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient profile not found."));
@@ -126,6 +116,8 @@ public class PatientRecordsService {
         dto.setFileUrl(r.getFileUrl());
         dto.setReportDate(r.getReportDate());
         dto.setAuthorName(r.getAuthorName());
+        dto.setAuthorDoctorId(r.getAuthorDoctorId());
+        dto.setReferralId(r.getReferralId());
         return dto;
     }
 
@@ -139,6 +131,8 @@ public class PatientRecordsService {
         dto.setInstructions(p.getInstructions());
         dto.setPrescribedDate(p.getPrescribedDate());
         dto.setAuthorName(p.getAuthorName());
+        dto.setAuthorDoctorId(p.getAuthorDoctorId());
+        dto.setReferralId(p.getReferralId());
         return dto;
     }
 }

@@ -64,43 +64,6 @@ public class RecordsController {
     }
 
     /**
-     * POST /api/records/medicines
-     */
-    @PostMapping("/medicines")
-    public ResponseEntity<PrescriptionDTO> addMedicine(@RequestBody com.medroute.entity.Prescription prescription) {
-        try {
-            if (prescription.getPrescribedDate() == null) {
-                prescription.setPrescribedDate(java.time.LocalDate.now());
-            }
-            // Would normally validate appointment ownership here
-            // Just delegating to a save method or repository directly for now
-            // To be clean, we should add save to PatientRecordsService, but we can do it via a repository if injected.
-            // Let's add it via PatientRecordsService in the next step.
-            return ResponseEntity.ok(recordsService.addMedicine(prescription));
-        } catch (RuntimeException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
-    }
-
-    /**
-     * POST /api/records/reports
-     */
-    @PostMapping("/reports")
-    public ResponseEntity<MedicalReportDTO> addReport(@RequestBody com.medroute.entity.MedicalReport report) {
-        try {
-            if (report.getReportDate() == null) {
-                report.setReportDate(java.time.LocalDate.now());
-            }
-            if (report.getCreatedAt() == null) {
-                report.setCreatedAt(java.time.LocalDateTime.now());
-            }
-            return ResponseEntity.ok(recordsService.addReport(report));
-        } catch (RuntimeException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
-    }
-
-    /**
      * POST /api/records/patients/{patientId}/mark-read?userId=
      * Marks all of this patient's notifications as read — called when the
      * patient's gallery is opened, clearing the chooser badge.

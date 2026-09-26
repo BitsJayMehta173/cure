@@ -3,7 +3,8 @@ package com.medroute.controller;
 import com.medroute.entity.Appointment;
 import com.medroute.entity.Doctor;
 import com.medroute.entity.Patient;
-import com.medroute.entity.Referral;
+import com.medroute.repository.FollowUpRequestRepository;
+import com.medroute.service.ReferralService;
 import com.medroute.repository.AppointmentRepository;
 import com.medroute.repository.CancellationRepository;
 import com.medroute.repository.DoctorRepository;
@@ -55,6 +56,12 @@ public class DoctorPortalController {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private FollowUpRequestRepository followUpRequestRepository;
+
+    @Autowired
+    private ReferralService referralService;
+
     /**
      * GET /api/doctor-portal/patients?doctorId=
      * Returns distinct patients who have had an appointment with this doctor.
@@ -73,10 +80,9 @@ public class DoctorPortalController {
                 .map(Appointment::getPatientFk)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        // Get distinct patient IDs from referrals to this doctor
-        List<Referral> referrals = referralRepository.findByReferredToDoctorId(doctorId);
-        referrals.stream()
-                .filter(r -> r.getPatient() != null)
+        // Plus patients referred to this doctor (referrals that still grant record access)
+        referralRepository.findByReferredToDoctorIdOrderByCreatedAtDesc(doctorId).stream()
+                .filter(r -> r.getPatient() != null && r.getStatus().grantsAccess())
                 .forEach(r -> patientIds.add(r.getPatient().getId()));
 
         List<Map<String, Object>> result = new ArrayList<>();
@@ -128,10 +134,12 @@ public class DoctorPortalController {
 
         List<Appointment> appointments =
                 appointmentRepository.findByDoctorIdAndDateStrOrderByTokenNumAsc(doctorId, date);
+        Map<Long, String> displayStatuses = referralService.displayStatuses(appointments);
 
         List<Map<String, Object>> result = appointments.stream().map(a -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", a.getId());
+            map.put("displayStatus", displayStatuses.get(a.getId()));
             map.put("patientName", a.getPatientName() != null ? a.getPatientName() : "Walk-in Patient");
             map.put("patientFk", a.getPatientFk());
             map.put("tokenNum", a.getTokenNum());
@@ -210,6 +218,7 @@ public class DoctorPortalController {
         return appointmentRepository.findById(id).map(a -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", a.getId());
+            map.put("displayStatus", referralService.displayStatuses(List.of(a)).get(a.getId()));
             map.put("patientName", a.getPatientName() != null ? a.getPatientName() : "Unknown");
             map.put("tokenNum", a.getTokenNum() != null ? a.getTokenNum() : 0);
             map.put("expectedTimeStr", a.getTokenNum() != null ? "Token #" + a.getTokenNum() : "TBD");
@@ -263,13 +272,15 @@ public class DoctorPortalController {
         return appointmentRepository.findById(id).map(a -> {
             a.setStatus("completed");
             appointmentRepository.save(a);
+            referralService.onVisitFinalized(id); // withdraws pending referrals, closes answered second opinions
             return ResponseEntity.ok(Map.of("success", true, "message", "Appointment marked as completed"));
         }).orElse(ResponseEntity.notFound().build());
     }
 
     /**
      * PUT /api/doctor-portal/appointments/{id}/advice
-     * Updates the general advice for an appointment.
+     * Saves the general advice for an appointment. Write-once: like all medical records,
+     * advice cannot be changed after it has been saved (409).
      */
     @PutMapping("/appointments/{id}/advice")
     public ResponseEntity<Map<String, String>> updateAdvice(
@@ -277,9 +288,19 @@ public class DoctorPortalController {
             @RequestBody Map<String, String> body) {
         return appointmentRepository.findById(id)
                 .map(a -> {
-                    a.setGeneralAdvice(body.getOrDefault("advice", ""));
+                    if (a.getGeneralAdvice() != null && !a.getGeneralAdvice().isBlank()) {
+                        throw new org.springframework.web.server.ResponseStatusException(
+                                org.springframework.http.HttpStatus.CONFLICT,
+                                "General advice has already been saved and can't be changed.");
+                    }
+                    String advice = body.getOrDefault("advice", "");
+                    if (advice == null || advice.isBlank()) {
+                        throw new org.springframework.web.server.ResponseStatusException(
+                                org.springframework.http.HttpStatus.BAD_REQUEST, "Advice is empty.");
+                    }
+                    a.setGeneralAdvice(advice.trim());
                     appointmentRepository.save(a);
-                    return ResponseEntity.ok(Map.of("advice", a.getGeneralAdvice() != null ? a.getGeneralAdvice() : ""));
+                    return ResponseEntity.ok(Map.of("advice", a.getGeneralAdvice()));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -304,28 +325,11 @@ public class DoctorPortalController {
             @PathVariable Long id,
             @RequestParam Long doctorId) {
             
-        // Check referrals for this doctor and patient
-        List<Referral> doctorReferrals = referralRepository.findByPatientId(id).stream()
-                .filter(r -> r.getReferredToDoctor() != null && r.getReferredToDoctor().getId().equals(doctorId))
-                .collect(Collectors.toList());
-                
-        boolean hasFullPatientAccess = doctorReferrals.stream()
-                .anyMatch(r -> "FULL_PATIENT".equals(r.getReferralType()));
-                
-        List<Long> singleCaseApptIds = doctorReferrals.stream()
-                .filter(r -> "SINGLE_CASE".equals(r.getReferralType()) && r.getAppointment() != null)
-                .map(r -> r.getAppointment().getId())
-                .collect(Collectors.toList());
-
-        List<Appointment> appointments = appointmentRepository.findAll().stream()
-                .filter(a -> id.equals(a.getPatientFk()))
-                // Filter by permission:
-                // 1. Doctor is the attending doctor
-                // 2. Doctor has FULL_PATIENT referral
-                // 3. Appointment was explicitly referred as SINGLE_CASE to this doctor
-                .filter(a -> hasFullPatientAccess 
-                        || (a.getDoctor() != null && a.getDoctor().getId().equals(doctorId))
-                        || singleCaseApptIds.contains(a.getId()))
+        // Access rule lives in ReferralService.canView (attending doctor, or an
+        // access-granting referral covering this appointment / the full history).
+        Set<Long> visible = referralService.viewableAppointmentIds(doctorId, id);
+        List<Appointment> appointments = appointmentRepository.findByPatientFkOrderByDateStrDesc(id).stream()
+                .filter(a -> visible.contains(a.getId()))
                 .sorted(Comparator.comparing(Appointment::getId).reversed())
                 .collect(Collectors.toList());
 
@@ -351,6 +355,11 @@ public class DoctorPortalController {
             map.put("hospitalName", hospName);
             map.put("departmentName", deptName);
             map.put("doctorName", docName);
+            // Ownership / provenance of this record in the care chain
+            map.put("doctorId", a.getDoctor() != null ? a.getDoctor().getId() : null);
+            map.put("ownRecord", a.getDoctor() != null && a.getDoctor().getId().equals(doctorId));
+            map.put("parentAppointmentId", a.getParentAppointmentId());
+            map.put("originReferralId", a.getOriginReferralId());
             
             return map;
         }).collect(Collectors.toList());
@@ -398,158 +407,6 @@ public class DoctorPortalController {
     }
 
     /**
-     * POST /api/doctor-portal/referrals
-     * Creates a new referral. Prevents duplicates.
-     * referralType: "FULL_PATIENT" (whole history) or "SINGLE_CASE" (one appointment)
-     */
-    @PostMapping("/referrals")
-    public ResponseEntity<?> createReferral(@RequestBody Map<String, Object> payload) {
-        try {
-            Long patientId = Long.valueOf(payload.get("patientId").toString());
-            Long referredByDoctorId = Long.valueOf(payload.get("referredByDoctorId").toString());
-            Long referredToDoctorId = Long.valueOf(payload.get("referredToDoctorId").toString());
-            String notes = payload.containsKey("notes") ? payload.get("notes").toString() : "";
-            Long appointmentId = payload.containsKey("appointmentId") && payload.get("appointmentId") != null 
-                ? Long.valueOf(payload.get("appointmentId").toString()) 
-                : null;
-            String referralType = payload.containsKey("referralType") 
-                ? payload.get("referralType").toString() 
-                : (appointmentId != null ? "SINGLE_CASE" : "FULL_PATIENT");
-
-            Optional<Patient> patient = patientRepository.findById(patientId);
-            Optional<Doctor> byDoctor = doctorRepository.findById(referredByDoctorId);
-            Optional<Doctor> toDoctor = doctorRepository.findById(referredToDoctorId);
-
-            if (patient.isEmpty() || byDoctor.isEmpty() || toDoctor.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Invalid patient or doctor IDs"));
-            }
-
-            // Duplicate check
-            if (appointmentId != null) {
-                // SINGLE_CASE: check if same appointment already referred to same doctor
-                Optional<Referral> existing = referralRepository
-                        .findByPatientIdAndReferredToDoctorIdAndAppointmentId(patientId, referredToDoctorId, appointmentId);
-                if (existing.isPresent()) {
-                    return ResponseEntity.badRequest().body(Map.of("error", "This case has already been referred to this doctor."));
-                }
-            } else {
-                // FULL_PATIENT: check if full patient referral already exists
-                Optional<Referral> existing = referralRepository
-                        .findByPatientIdAndReferredToDoctorIdAndReferralType(patientId, referredToDoctorId, "FULL_PATIENT");
-                if (existing.isPresent()) {
-                    return ResponseEntity.badRequest().body(Map.of("error", "This patient has already been referred to this doctor."));
-                }
-            }
-
-            Referral referral = new Referral();
-            referral.setPatient(patient.get());
-            referral.setReferredByDoctor(byDoctor.get());
-            referral.setReferredToDoctor(toDoctor.get());
-            referral.setNotes(notes);
-            referral.setReferralType(referralType);
-            
-            if (byDoctor.get().getId().equals(toDoctor.get().getId())) {
-                referral.setReferralStatus("analysed");
-            }
-            
-            if (appointmentId != null) {
-                appointmentRepository.findById(appointmentId).ifPresent(a -> {
-                    referral.setAppointment(a);
-                    a.setStatus("completed"); // Auto-complete when referred
-                    appointmentRepository.save(a);
-                });
-            }
-
-            referralRepository.save(referral);
-            
-            return ResponseEntity.ok(Map.of("success", true, "message", "Referral sent successfully"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * GET /api/doctor-portal/referrals?doctorId=
-     * Returns all referrals sent TO this doctor, with patient and referring doctor info.
-     */
-    @GetMapping("/referrals")
-    public ResponseEntity<List<Map<String, Object>>> getReferrals(@RequestParam Long doctorId) {
-        List<Referral> referrals = referralRepository.findByReferredToDoctorId(doctorId);
-
-        List<Map<String, Object>> result = referrals.stream().map(r -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", r.getId());
-            map.put("notes", r.getNotes() != null ? r.getNotes() : "");
-            map.put("createdAt", r.getCreatedAt() != null ? r.getCreatedAt().toString() : "");
-            map.put("referralType", r.getReferralType() != null ? r.getReferralType() : "FULL_PATIENT");
-            map.put("referralStatus", r.getReferralStatus() != null ? r.getReferralStatus() : "pending");
-
-            // Patient info
-            if (r.getPatient() != null) {
-                map.put("patientId", r.getPatient().getId());
-                map.put("patientName", r.getPatient().getFullName() != null ? r.getPatient().getFullName() : "Unknown");
-                map.put("patientAge", r.getPatient().getAge());
-                map.put("patientGender", r.getPatient().getGender() != null ? r.getPatient().getGender() : "");
-                map.put("patientBloodGroup", r.getPatient().getBloodGroup() != null ? r.getPatient().getBloodGroup() : "");
-                map.put("patientLocation", r.getPatient().getLocation() != null ? r.getPatient().getLocation() : "");
-            }
-
-            // Referring doctor info
-            if (r.getReferredByDoctor() != null) {
-                map.put("referredByDoctorId", r.getReferredByDoctor().getId());
-                map.put("referredByDoctorName", r.getReferredByDoctor().getDoctorName());
-                String hospName = "";
-                String deptName = "";
-                if (r.getReferredByDoctor().getDepartment() != null) {
-                    deptName = r.getReferredByDoctor().getDepartment().getDepartmentName();
-                    if (r.getReferredByDoctor().getDepartment().getHospital() != null) {
-                        hospName = r.getReferredByDoctor().getDepartment().getHospital().getName();
-                    }
-                }
-                map.put("referredByHospital", hospName);
-                map.put("referredByDepartment", deptName);
-            }
-
-            // Appointment info if linked
-            if (r.getAppointment() != null) {
-                map.put("appointmentId", r.getAppointment().getId());
-                map.put("appointmentDate", r.getAppointment().getDateStr() != null ? r.getAppointment().getDateStr() : "");
-            }
-
-            return map;
-        }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(result);
-    }
-
-    /**
-     * POST /api/doctor-portal/referrals/{id}/complete-analysis
-     * Marks a referral as analysed.
-     */
-    @PostMapping("/referrals/{id}/complete-analysis")
-    public ResponseEntity<?> completeAnalysis(@PathVariable Long id) {
-        return referralRepository.findById(id).map(r -> {
-            r.setReferralStatus("analysed");
-            referralRepository.save(r);
-            return ResponseEntity.ok(Map.of("success", true, "message", "Analysis complete"));
-        }).orElse(ResponseEntity.notFound().build());
-    }
-
-    /**
-     * DELETE /api/doctor-portal/referrals/clear-all
-     * Deletes all referrals from the database (for testing purposes).
-     */
-    @DeleteMapping("/referrals/clear-all")
-    public ResponseEntity<?> clearAllReferrals() {
-        try {
-            referralRepository.deleteAll();
-            return ResponseEntity.ok(Map.of("success", true, "message", "All referrals have been cleared from the database."));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
      * DELETE /api/doctor-portal/test-data/clear-all
      * Wipes ALL transactional test data: referrals, appointments, cancellations,
      * medical reports, prescriptions and notifications. Does NOT touch master data
@@ -560,6 +417,7 @@ public class DoctorPortalController {
     public ResponseEntity<?> clearAllTestData() {
         try {
             notificationRepository.deleteAll();
+            followUpRequestRepository.deleteAll();
             prescriptionRepository.deleteAll();
             medicalReportRepository.deleteAll();
             cancellationRepository.deleteAll();

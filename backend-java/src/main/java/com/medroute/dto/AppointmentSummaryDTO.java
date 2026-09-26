@@ -10,6 +10,8 @@ public class AppointmentSummaryDTO {
     private String expectedTimeStr;
     private String status;
     private String patientName;
+    /** confirmed | referred | feedback_received | completed | cancelled — computed by ReferralService. */
+    private String displayStatus;
 
     public AppointmentSummaryDTO() {}
 
@@ -31,4 +33,6 @@ public class AppointmentSummaryDTO {
     public void setStatus(String status) { this.status = status; }
     public String getPatientName() { return patientName; }
     public void setPatientName(String patientName) { this.patientName = patientName; }
+    public String getDisplayStatus() { return displayStatus; }
+    public void setDisplayStatus(String displayStatus) { this.displayStatus = displayStatus; }
 }

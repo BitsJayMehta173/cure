@@ -18,4 +18,10 @@ public interface MedicalReportRepository extends JpaRepository<MedicalReport, Lo
      * already have at least one report attached.
      */
     boolean existsByAppointmentId(Long appointmentId);
+
+    // ─── Case records (CaseRecordsService) ───────────────────────────────
+    List<MedicalReport> findByAppointmentIdIn(List<Long> appointmentIds);
+    List<MedicalReport> findByReferralId(Long referralId);
+    List<MedicalReport> findByReferralIdAndSnapshotTrue(Long referralId);
+    List<MedicalReport> findByReferralIdAndSnapshotFalse(Long referralId);
 }

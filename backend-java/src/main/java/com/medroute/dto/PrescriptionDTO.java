@@ -11,6 +11,8 @@ public class PrescriptionDTO {
     private String instructions;
     private LocalDate prescribedDate;
     private String authorName;
+    private Long authorDoctorId;
+    private Long referralId;
 
     public PrescriptionDTO() {}
 
@@ -30,4 +32,8 @@ public class PrescriptionDTO {
     public void setPrescribedDate(LocalDate prescribedDate) { this.prescribedDate = prescribedDate; }
     public String getAuthorName() { return authorName; }
     public void setAuthorName(String authorName) { this.authorName = authorName; }
+    public Long getAuthorDoctorId() { return authorDoctorId; }
+    public void setAuthorDoctorId(Long authorDoctorId) { this.authorDoctorId = authorDoctorId; }
+    public Long getReferralId() { return referralId; }
+    public void setReferralId(Long referralId) { this.referralId = referralId; }
 }

@@ -37,6 +37,9 @@ public class StaffController {
     @Autowired
     private UserAccountRepository userAccountRepository;
 
+    @Autowired
+    private org.springframework.context.ApplicationEventPublisher events;
+
     /**
      * GET /api/staff/patients
      * Returns all patients in the system with demographic information.
@@ -186,6 +189,7 @@ public class StaffController {
      * Allows staff to mark an appointment as confirmed, completed, or cancelled.
      */
     @PutMapping("/appointments/{id}/status")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> updateAppointmentStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String newStatus = body.get("status");
         if (newStatus == null || newStatus.isBlank()) {
@@ -195,8 +199,12 @@ public class StaffController {
         Appointment app = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
 
+        boolean becameCancelled = !"cancelled".equals(app.getStatus()) && "cancelled".equals(newStatus.trim().toLowerCase());
         app.setStatus(newStatus.trim().toLowerCase());
         Appointment saved = appointmentRepository.save(app);
+        if (becameCancelled) {
+            events.publishEvent(new com.medroute.service.AppointmentCancelledEvent(saved.getId()));
+        }
 
         return ResponseEntity.ok(Map.of("id", saved.getId(), "status", saved.getStatus()));
     }

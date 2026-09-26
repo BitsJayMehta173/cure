@@ -47,4 +47,6 @@ pip-delete-this-directory.txt
 # Local Data
 *.sqlite3
 db/
+# ...but keep the Flyway migrations (matched by db/ above)
+!backend-java/src/main/resources/db/
 *.csv

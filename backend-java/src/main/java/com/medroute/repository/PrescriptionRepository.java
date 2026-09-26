@@ -17,4 +17,10 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, Long
      * Idempotency check for the seeder backfill.
      */
     boolean existsByAppointmentId(Long appointmentId);
+
+    // ─── Case records (CaseRecordsService) ───────────────────────────────
+    List<Prescription> findByAppointmentIdIn(List<Long> appointmentIds);
+    List<Prescription> findByReferralId(Long referralId);
+    List<Prescription> findByReferralIdAndSnapshotTrue(Long referralId);
+    List<Prescription> findByReferralIdAndSnapshotFalse(Long referralId);
 }

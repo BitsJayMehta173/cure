@@ -70,6 +70,14 @@ public class Appointment {
      */
     @Column(name = "general_advice", columnDefinition = "TEXT")
     private String generalAdvice;
+
+    /** Visit this appointment follows up on (same-doctor follow-up or transfer follow-up). */
+    @Column(name = "parent_appointment_id")
+    private Long parentAppointmentId;
+
+    /** Referral (TRANSFER) this appointment was booked from, if any. */
+    @Column(name = "origin_referral_id")
+    private Long originReferralId;
     // ─────────────────────────────────────────────────────────────────────────
 
     public Long getId() { return id; }
@@ -96,4 +104,8 @@ public class Appointment {
     public void setStatus(String status) { this.status = status; }
     public String getGeneralAdvice() { return generalAdvice; }
     public void setGeneralAdvice(String generalAdvice) { this.generalAdvice = generalAdvice; }
+    public Long getParentAppointmentId() { return parentAppointmentId; }
+    public void setParentAppointmentId(Long parentAppointmentId) { this.parentAppointmentId = parentAppointmentId; }
+    public Long getOriginReferralId() { return originReferralId; }
+    public void setOriginReferralId(Long originReferralId) { this.originReferralId = originReferralId; }
 }
