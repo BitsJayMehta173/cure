@@ -4,6 +4,7 @@ import type { AppointmentSummary } from '../../../booking/types/booking.types';
 import { ReportsPanel } from './ReportsPanel';
 import { MedicinePanel } from './MedicinePanel';
 import { StatusPanel } from './StatusPanel';
+import { DownloadReportButton } from '../../report/DownloadReportButton';
 
 type DetailSection = 'reports' | 'medicine' | 'status';
 
@@ -39,6 +40,9 @@ export const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointmen
               {item.label}
             </button>
           ))}
+          {appointment.status !== 'cancelled' && (
+            <DownloadReportButton appointmentId={appointment.id} style={{ marginTop: 12 }} />
+          )}
         </div>
 
         <div className="detail-content">

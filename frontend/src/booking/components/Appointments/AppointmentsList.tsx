@@ -6,6 +6,7 @@ import { useAuth } from '../../../auth/AuthContext';
 import { followUpApi, referralApi } from '../../../referrals/api/referralApi';
 import type { FollowUp, Referral } from '../../../referrals/types/referral.types';
 import { PatientCareItems } from '../../../referrals/components/PatientCareItems';
+import { DownloadReportButton } from '../../../records/report/DownloadReportButton';
 
 interface AppointmentsListProps {
   profileId?: number | null;
@@ -182,6 +183,10 @@ export const AppointmentsList: React.FC<AppointmentsListProps> = ({ profileId, i
                     <span className="value">{apt.expectedTimeStr || 'Pending'}</span>
                   </div>
                 </div>
+
+                {displayStatus !== 'cancelled' && (
+                  <DownloadReportButton appointmentId={apt.id} style={{ marginTop: 10 }} />
+                )}
 
                 {displayStatus === 'confirmed' && (
                   <button className="cancel-apt-btn" onClick={() => handleCancel(apt.id)}>
