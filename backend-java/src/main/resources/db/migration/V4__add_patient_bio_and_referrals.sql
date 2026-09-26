@@ -1,11 +1,11 @@
 -- Add bio fields to patient table
 ALTER TABLE patient
-ADD COLUMN location VARCHAR(255),
-ADD COLUMN address TEXT,
-ADD COLUMN health_profile TEXT;
+ADD COLUMN IF NOT EXISTS location VARCHAR(255),
+ADD COLUMN IF NOT EXISTS address TEXT,
+ADD COLUMN IF NOT EXISTS health_profile TEXT;
 
 -- Create referral table
-CREATE TABLE referral (
+CREATE TABLE IF NOT EXISTS referral (
     id BIGSERIAL PRIMARY KEY,
     patient_id BIGINT NOT NULL,
     referred_by_doctor_id BIGINT NOT NULL,

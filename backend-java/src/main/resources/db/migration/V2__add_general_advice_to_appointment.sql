@@ -1,1 +1,1 @@
-ALTER TABLE appointment ADD COLUMN general_advice TEXT;
+ALTER TABLE appointment ADD COLUMN IF NOT EXISTS general_advice TEXT;

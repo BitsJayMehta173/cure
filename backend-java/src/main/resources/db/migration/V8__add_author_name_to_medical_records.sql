@@ -1,2 +1,2 @@
-ALTER TABLE medical_report ADD COLUMN author_name VARCHAR(255);
-ALTER TABLE prescription ADD COLUMN author_name VARCHAR(255);
+ALTER TABLE medical_report ADD COLUMN IF NOT EXISTS author_name VARCHAR(255);
+ALTER TABLE prescription ADD COLUMN IF NOT EXISTS author_name VARCHAR(255);
